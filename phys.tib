@@ -1,0 +1,2584 @@
+Define LibPub main()=
+Prgm
+©phys\main(): Y&F ch21-23 solver
+Local ch,t,a,nt,quit
+setMode({2,2,3,1,4,1,5,1})
+physok:=1
+Disp "PHYSICS SOLVER Y&F 21-23"
+Disp "Cancel a prompt = go back"
+quit:=0
+Loop
+  Disp "CHAPTERS:"
+  Disp " 21 Coulomb's law"
+  Disp " 22 Gauss's law"
+  Disp " 23 Electric potential"
+  Loop
+    phys\ask("Chapter 21, 22 or 23 (0=quit)",0)
+    If physok=0 Then
+      ch:=0
+      Exit
+    EndIf
+    ch:=physv
+    If ch=1 or ch=2 or ch=3 Then
+      ch:=ch+20
+    EndIf
+    If ch=0 or ch=21 or ch=22 or ch=23 Then
+      Exit
+    EndIf
+    Text "Type 21, 22 or 23 (0 quits)"
+  EndLoop
+  If ch=0 Then
+    Exit
+  EndIf
+  Loop
+    If ch=21 Then
+      nt:=6
+      Disp "CH 21 COULOMB TYPES:"
+      Disp " 1 Charge count Q=Ne"
+      Disp " 2 Force, 2 charges"
+      Disp " 3 Net force, 1D line"
+      Disp " 4 Net force, 2D (x,y)"
+      Disp " 5 Zero-force point"
+      Disp " 6 Hanging spheres"
+    ElseIf ch=22 Then
+      nt:=7
+      Disp "CH 22 GAUSS TYPES:"
+      Disp " 1 Flux, flat surface"
+      Disp " 2 Flux from Q enclosed"
+      Disp " 3 Line charge/cylinder"
+      Disp " 4 Sphere: E at radius r"
+      Disp " 5 Force from a shell"
+      Disp " 6 Charge densities"
+      Disp " 7 Coaxial cable"
+    Else
+      nt:=10
+      Disp "CH 23 POTENTIAL TYPES:"
+      Disp " 1 U of point charges"
+      Disp " 2 V at a point, work"
+      Disp " 3 Work-energy, uniform E"
+      Disp " 4 Accelerate/stop e,p"
+      Disp " 5 Point q from V and E"
+      Disp " 6 Line charge potential"
+      Disp " 7 E from V(x,y,z)"
+      Disp " 8 Spheres/cylinders Vab"
+      Disp " 9 Insulating sphere V"
+      Disp " 10 Where U = 0 on a line"
+    EndIf
+    phys\ask("Type 1-"&string(nt)&" (0=back)",200+nt)
+    If physok=0 Then
+      physok:=1
+      Exit
+    EndIf
+    t:=physv
+    If t=0 Then
+      Exit
+    EndIf
+    Loop
+      physok:=1
+      If ch=21 Then
+        If t=1 Then
+          phys\m211()
+        ElseIf t=2 Then
+          phys\m212()
+        ElseIf t=3 Then
+          phys\m213()
+        ElseIf t=4 Then
+          phys\m214()
+        ElseIf t=5 Then
+          phys\m215()
+        Else
+          phys\m216()
+        EndIf
+      ElseIf ch=22 Then
+        If t=1 Then
+          phys\m221()
+        ElseIf t=2 Then
+          phys\m222()
+        ElseIf t=3 Then
+          phys\m223()
+        ElseIf t=4 Then
+          phys\m224(0)
+        ElseIf t=5 Then
+          phys\m225()
+        ElseIf t=6 Then
+          phys\m226()
+        Else
+          phys\m227()
+        EndIf
+      Else
+        If t=1 Then
+          phys\m231()
+        ElseIf t=2 Then
+          phys\m232()
+        ElseIf t=3 Then
+          phys\m233()
+        ElseIf t=4 Then
+          phys\m234()
+        ElseIf t=5 Then
+          phys\m235()
+        ElseIf t=6 Then
+          phys\m236()
+        ElseIf t=7 Then
+          phys\m237()
+        ElseIf t=8 Then
+          phys\m238()
+        ElseIf t=9 Then
+          phys\m239()
+        Else
+          phys\m2310()
+        EndIf
+      EndIf
+      If physok=0 Then
+        Disp "(cancelled)"
+        physok:=1
+        Exit
+      EndIf
+      phys\ask("1=solve again 2=menu 3=quit",103)
+      If physok=0 Then
+        quit:=1
+        Exit
+      EndIf
+      a:=physv
+      If a=3 Then
+        quit:=1
+        Exit
+      ElseIf a=2 Then
+        Exit
+      EndIf
+    EndLoop
+    If quit=1 Then
+      Exit
+    EndIf
+  EndLoop
+  If quit=1 Then
+    Exit
+  EndIf
+EndLoop
+DelVar physv,physok
+Disp "Done."
+EndPrgm
+
+Define LibPriv fmt(x,n,z)=
+Func
+Local a,b,p,m,r,d,s,k,mt,ex
+a:=approx(x)
+If a=0 Then
+  Return "0"
+EndIf
+b:=abs(a)
+p:=0
+While b≥10
+  b:=b/10
+  p:=p+1
+EndWhile
+While b<1
+  b:=b*10
+  p:=p-1
+EndWhile
+m:=round(a/10^(p-n+1),0)
+If abs(m)≥10^n Then
+  p:=p+1
+  m:=m/10
+EndIf
+r:=m*10^(p-n+1)
+If p≥−3 and p≤2 Then
+  d:=n-1-p
+  If d<0 Then
+    d:=0
+  EndIf
+  s:=format(r,"F"&string(d))
+  If right(s,1)="." Then
+    s:=left(s,dim(s)-1)
+  EndIf
+Else
+  s:=format(r,"S"&string(n-1))
+EndIf
+If z=1 Then
+  k:=inString(s,"ᴇ")
+  If k>0 Then
+    mt:=left(s,k-1)
+    ex:=mid(s,k)
+  Else
+    mt:=s
+    ex:=""
+  EndIf
+  If inString(mt,".")>0 Then
+    While right(mt,1)="0"
+      mt:=left(mt,dim(mt)-1)
+    EndWhile
+    If right(mt,1)="." Then
+      mt:=left(mt,dim(mt)-1)
+    EndIf
+  EndIf
+  s:=mt&ex
+EndIf
+Return s
+EndFunc
+
+Define LibPriv sf(x)=
+Func
+Return phys\fmt(x,3,0)
+EndFunc
+
+Define LibPriv sn(x)=
+Func
+Return phys\fmt(x,4,1)
+EndFunc
+
+Define LibPriv lc(c)=
+Func
+Local k
+k:=inString("ABCDEFGHIJKLMNOPQRSTUVWXYZ",c)
+If k>0 Then
+  Return mid("abcdefghijklmnopqrstuvwxyz",k,1)
+EndIf
+Return c
+EndFunc
+
+Define LibPriv neg(s)=
+Func
+Local i,c,pc,w
+w:=""
+For i,1,dim(s)
+  c:=mid(s,i,1)
+  If i=1 Then
+    pc:="("
+  Else
+    pc:=mid(s,i-1,1)
+  EndIf
+  If c="-" and inString("(,^*/ᴇ=",pc)>0 Then
+    c:="−"
+  EndIf
+  If c="+" and pc="ᴇ" Then
+    c:=""
+  EndIf
+  w:=w&c
+EndFor
+Return w
+EndFunc
+
+Define LibPriv num(s)=
+Func
+Local t,i,c,n,l1,l2,body,mult,pc,nc,u,dg
+dg:="0123456789."
+t:=""
+For i,1,dim(s)
+  c:=mid(s,i,1)
+  If c≠" " Then
+    t:=t&c
+  EndIf
+EndFor
+n:=dim(t)
+If n=0 Then
+  Return ""
+EndIf
+body:=t
+mult:=""
+l1:=phys\lc(right(t,1))
+If n≥3 Then
+  l2:=phys\lc(mid(t,n-1,1))&l1
+  If inString(dg&")",mid(t,n-2,1))>0 Then
+    If l2="cm" Then
+      mult:="1ᴇ−2"
+    ElseIf l2="mm" or l2="mc" Then
+      mult:="1ᴇ−3"
+    ElseIf l2="um" or l2="µm" or l2="μm" or l2="uc" or l2="µc" or l2="μc" Then
+      mult:="1ᴇ−6"
+    ElseIf l2="nm" or l2="nc" Then
+      mult:="1ᴇ−9"
+    ElseIf l2="pc" Then
+      mult:="1ᴇ−12"
+    EndIf
+    If mult≠"" Then
+      body:=left(t,n-2)
+    EndIf
+  EndIf
+EndIf
+If mult="" and n≥2 Then
+  If inString(dg&")",mid(t,n-1,1))>0 Then
+    If l1="u" or l1="µ" or l1="μ" Then
+      mult:="1ᴇ−6"
+    ElseIf l1="n" Then
+      mult:="1ᴇ−9"
+    ElseIf l1="p" Then
+      mult:="1ᴇ−12"
+    ElseIf l1="k" Then
+      mult:="1ᴇ3"
+    ElseIf l1="m" or l1="c" Then
+      mult:="1"
+    EndIf
+    If mult≠"" Then
+      body:=left(t,n-1)
+    EndIf
+  EndIf
+EndIf
+If mult="" or mult="1" Then
+  t:=body
+Else
+  t:="("&body&")*"&mult
+EndIf
+u:=""
+n:=dim(t)
+For i,1,n
+  c:=mid(t,i,1)
+  If (c="E" or c="e") and i>1 and i<n Then
+    pc:=mid(t,i-1,1)
+    nc:=mid(t,i+1,1)
+    If inString(dg,pc)>0 and inString("0123456789+-−",nc)>0 Then
+      c:="ᴇ"
+    EndIf
+  EndIf
+  u:=u&c
+EndFor
+Return phys\neg(u)
+EndFunc
+
+Define LibPriv ask(pr,code)=
+Prgm
+Local s,t,v,k,nn,msg
+If getType(physok)="NONE" Then
+  physok:=1
+EndIf
+If physok=0 Then
+  physv:=0
+  Return
+EndIf
+Loop
+  s:="@@"
+  RequestStr pr,s,0
+  If s="@@" or s="" Then
+    physok:=0
+    physv:=0
+    Return
+  EndIf
+  t:=phys\num(s)
+  Try
+    v:=approx(expr(t))
+  Else
+    v:="bad"
+    ClrErr
+  EndTry
+  If getType(v)≠"NUM" Then
+    Text "Not a number. Try 2.5E-6 or 4n or 1.5cm"
+    Cycle
+  EndIf
+  msg:=""
+  If code=1 and v≤0 Then
+    msg:="Must be > 0: sizes, masses, distances are positive"
+  ElseIf code=2 and v<0 Then
+    msg:="Must be 0 or more: this cannot be negative"
+  ElseIf code=3 and v=0 Then
+    msg:="Must not be 0 (a zero value makes this undefined)"
+  ElseIf code=4 and (v≤0 or v≥90) Then
+    msg:="Angle must be between 0 and 90 deg"
+  ElseIf code=5 and (v<0 or v>90) Then
+    msg:="Angle must be 0 to 90 deg (from plane or normal)"
+  ElseIf code≥100 Then
+    If code≥200 Then
+      nn:=code-200
+      k:=0
+    Else
+      nn:=code-100
+      k:=1
+    EndIf
+    If v≠floor(v) or v<k or v>nn Then
+      msg:="Type a whole number from "&string(k)&" to "&string(nn)
+    EndIf
+  EndIf
+  If msg≠"" Then
+    Text msg
+    Cycle
+  EndIf
+  If code≥100 Then
+    k:=0
+    While k<v
+      k:=k+1
+    EndWhile
+    v:=k
+  EndIf
+  physv:=v
+  Return
+EndLoop
+EndPrgm
+
+Define LibPriv hdr(s)=
+Prgm
+Disp "== "&s&" =="
+EndPrgm
+
+Define LibPriv pk(l)=
+Prgm
+Local i,s,w
+s:="  "&l[1]
+For i,2,dim(l)
+  w:=l[i]
+  If dim(s)+dim(w)≤28 Then
+    s:=s&w
+  Else
+    Disp s
+    s:="    "&w
+  EndIf
+EndFor
+Disp s
+EndPrgm
+
+Define LibPriv out(s)=
+Prgm
+Local t
+t:=s
+While dim(t)>28
+  Disp left(t,28)
+  t:="    "&mid(t,29)
+EndWhile
+Disp t
+EndPrgm
+
+Define LibPriv unz(s)=
+Func
+Local t,k
+t:=s
+k:=inString(t,"phz")
+While k>0
+  t:=left(t,k-1)&mid(t,k+3)
+  k:=inString(t,"phz")
+EndWhile
+Return t
+EndFunc
+
+Define LibPriv m211()=
+Prgm
+Local c,nn,z,q,dn,lt,qe
+qe:=1.602ᴇ−19
+phys\hdr("21.1 Charge count")
+Disp "1 Q from N  2 N from n*L"
+Disp "3 N from Q"
+phys\ask("Find: 1 Q, 2 N=n*L, 3 N from Q",103)
+c:=physv
+If physok=0 Then
+  Return
+EndIf
+If c=1 Then
+  phys\ask("N (number of particles)",2)
+  nn:=physv
+  phys\ask("Charge each, in e (1 or -1)",3)
+  z:=physv
+ElseIf c=2 Then
+  phys\ask("n = particles per meter",1)
+  dn:=physv
+  phys\ask("L (length) in m",1)
+  lt:=physv
+  phys\ask("Charge each, in e (1 or -1)",3)
+  z:=physv
+Else
+  phys\ask("Q in C (E for x10^: 2.5E-6)",3)
+  q:=physv
+  phys\ask("Charge each, in e (1 or -1)",3)
+  z:=physv
+EndIf
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  e = 1.602ᴇ−19 C"
+Disp "  z = "&phys\sn(z)&" (charge in e)"
+If c=2 Then
+  Disp "  n = "&phys\sn(dn)&" per m"
+  Disp "  L = "&phys\sn(lt)&" m"
+  nn:=dn*lt
+  Disp "STEP 1: Count N"
+  Disp "  N = n*L"
+  phys\pk({"N = ("&phys\sn(dn)&")","("&phys\sn(lt)&")"})
+  Disp "  N = "&phys\sf(nn)
+  c:=1
+EndIf
+If c=1 Then
+  Disp "STEP: Total charge"
+  Disp "  Q = N*z*e"
+  phys\pk({"Q = ("&phys\sn(nn)&")","("&phys\sn(z)&")","(1.602ᴇ−19)"})
+  q:=nn*z*qe
+  Disp "RESULT:"
+  Disp "  Q = "&phys\sf(q)&" C"
+  If q>0 Then
+    Disp "  positive (z > 0)"
+  ElseIf q<0 Then
+    Disp "  negative (z < 0)"
+  EndIf
+Else
+  Disp "  Q = "&phys\sn(q)&" C"
+  Disp "STEP 1: Formula"
+  Disp "  N = Q/(z*e)"
+  Disp "STEP 2: Plug in"
+  phys\pk({"N = ("&phys\sn(q)&")","/(("&phys\sn(z)&")","(1.602ᴇ−19))"})
+  nn:=q/(z*qe)
+  If nn<0 Then
+    Disp "Signs of Q and z differ:"
+    Disp "  a count can't be < 0,"
+    Disp "  so use |N|."
+    nn:=abs(nn)
+  EndIf
+  Disp "STEP 3: Result"
+  Disp "  N = "&phys\sf(nn)&" particles"
+EndIf
+EndPrgm
+
+Define LibPriv m212()=
+Prgm
+Local q1,q2,r,f,kc
+kc:=8.99ᴇ9
+phys\hdr("21.2 Force, 2 charges")
+phys\ask("q1 in C (E for x10^: 2.5E-6)",0)
+q1:=physv
+phys\ask("q2 in C",0)
+q2:=physv
+phys\ask("r (distance) in m",1)
+r:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  q1 = "&phys\sn(q1)&" C"
+Disp "  q2 = "&phys\sn(q2)&" C"
+Disp "  r = "&phys\sn(r)&" m"
+Disp "STEP 1: Formula"
+Disp "  F = k|q1*q2|/r^2"
+Disp "STEP 2: Plug in"
+phys\pk({"F = (8.99ᴇ9)","|("&phys\sn(q1)&")","("&phys\sn(q2)&")|","/("&phys\sn(r)&")^2"})
+f:=kc*abs(q1*q2)/r^2
+Disp "STEP 3: Result"
+Disp "  F = "&phys\sf(f)&" N"
+If q1*q2>0 Then
+  Disp "DIRECTION: repulsive"
+  Disp "  (same signs push apart)"
+ElseIf q1*q2<0 Then
+  Disp "DIRECTION: attractive"
+  Disp "  (opposite signs attract)"
+Else
+  Disp "No force: a charge is 0"
+EndIf
+EndPrgm
+
+Define LibPriv m213()=
+Prgm
+Local n,i,si,ql,xl,q0,x0,kc,r,f,w,fs,fnet,tot
+kc:=8.99ᴇ9
+phys\hdr("21.3 Net force 1D")
+phys\ask("Number of source charges 1-3",103)
+n:=physv
+If physok=0 Then
+  Return
+EndIf
+ql:=newList(n)
+xl:=newList(n)
+For i,1,n
+  si:=string(i)
+  phys\ask("q"&si&" in C (E for x10^: 4E-9)",0)
+  ql[i]:=physv
+  phys\ask("x"&si&" (position) in m",0)
+  xl[i]:=physv
+EndFor
+phys\ask("Target charge q0 in C",0)
+q0:=physv
+phys\ask("Target position x0 in m",0)
+x0:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+For i,1,n
+  si:=string(i)
+  Disp "  q"&si&" = "&phys\sn(ql[i])&" C"
+  Disp "    at x"&si&" = "&phys\sn(xl[i])&" m"
+EndFor
+Disp "  target q0 = "&phys\sn(q0)&" C"
+Disp "    at x0 = "&phys\sn(x0)&" m"
+For i,1,n
+  If xl[i]=x0 Then
+    Disp "q"&string(i)&" is AT the target:"
+    Disp "  r = 0, force undefined."
+    Disp "  Use different positions."
+    Return
+  EndIf
+EndFor
+Disp "STEP 1: Formula"
+Disp "  Fi = k|qi*q0|/ri^2"
+Disp "  ri = |x0 - xi|"
+Disp "  like signs: push q0 away"
+Disp "  unlike: pull q0 toward"
+Disp "STEP 2: Each force on q0"
+fnet:=0
+tot:=0
+For i,1,n
+  si:=string(i)
+  r:=abs(x0-xl[i])
+  f:=kc*abs(ql[i]*q0)/r^2
+  tot:=tot+f
+  Disp "q"&si&": r = "&phys\sn(r)&" m"
+  phys\pk({"F"&si&" = (8.99ᴇ9)","|("&phys\sn(ql[i])&")","("&phys\sn(q0)&")|","/("&phys\sn(r)&")^2"})
+  Disp "  F"&si&" = "&phys\sf(f)&" N"
+  If ql[i]*q0>0 Then
+    w:=sign(x0-xl[i])
+    Disp "  repel: away from q"&si
+  ElseIf ql[i]*q0<0 Then
+    w:=sign(xl[i]-x0)
+    Disp "  attract: toward q"&si
+  Else
+    w:=0
+    Disp "  zero charge: no force"
+  EndIf
+  fs:=w*f
+  If w>0 Then
+    Disp "  F"&si&"x = +"&phys\sf(f)&" N (+x)"
+  ElseIf w<0 Then
+    Disp "  F"&si&"x = "&phys\sf(fs)&" N (−x)"
+  EndIf
+  fnet:=fnet+fs
+EndFor
+If abs(fnet)<1ᴇ−12*tot Then
+  fnet:=0
+EndIf
+Disp "STEP 3: Add signed forces"
+Disp "  Fnet = sum of Fix"
+Disp "  Fnet = "&phys\sf(fnet)&" N"
+If fnet>0 Then
+  Disp "DIRECTION: +x"
+  Disp "  magnitude "&phys\sf(fnet)&" N"
+ElseIf fnet<0 Then
+  Disp "DIRECTION: −x"
+  Disp "  magnitude "&phys\sf(abs(fnet))&" N"
+Else
+  Disp "DIRECTION: none (net 0)"
+EndIf
+EndPrgm
+
+Define LibPriv m214()=
+Prgm
+Local n,i,si,ql,xl,yl,q0,x0,y0,kc,dx,dy,r,f,s,ux,uy,fx,fy,sx,sy,fm,ang,std,tot,tol,w1,w2
+kc:=8.99ᴇ9
+setMode({2,2})
+phys\hdr("21.4 Net force 2D")
+phys\ask("Number of source charges 1-3",103)
+n:=physv
+If physok=0 Then
+  Return
+EndIf
+ql:=newList(n)
+xl:=newList(n)
+yl:=newList(n)
+For i,1,n
+  si:=string(i)
+  phys\ask("q"&si&" in C (E for x10^: 2E-9)",0)
+  ql[i]:=physv
+  phys\ask("x"&si&" in m",0)
+  xl[i]:=physv
+  phys\ask("y"&si&" in m",0)
+  yl[i]:=physv
+EndFor
+phys\ask("Target charge q0 in C",0)
+q0:=physv
+phys\ask("Target x0 in m",0)
+x0:=physv
+phys\ask("Target y0 in m",0)
+y0:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+For i,1,n
+  si:=string(i)
+  phys\pk({"q"&si&" = "&phys\sn(ql[i])&" C"," at ("&phys\sn(xl[i])&",",phys\sn(yl[i])&")"})
+EndFor
+phys\pk({"q0 = "&phys\sn(q0)&" C"," at ("&phys\sn(x0)&",",phys\sn(y0)&")"})
+For i,1,n
+  If xl[i]=x0 and yl[i]=y0 Then
+    Disp "q"&string(i)&" is AT the target:"
+    Disp "  r = 0, force undefined."
+    Return
+  EndIf
+EndFor
+Disp "STEP 1: Formulas"
+Disp "  dx = x0-xi, dy = y0-yi"
+Disp "  r = √(dx^2+dy^2)"
+Disp "  F = k|qi*q0|/r^2"
+Disp "  repel: along (dx,dy)/r"
+Disp "  attract: opposite way"
+Disp "STEP 2: Each source"
+sx:=0
+sy:=0
+tot:=0
+For i,1,n
+  si:=string(i)
+  dx:=x0-xl[i]
+  dy:=y0-yl[i]
+  r:=√(dx^2+dy^2)
+  f:=kc*abs(ql[i]*q0)/r^2
+  tot:=tot+f
+  Disp "SOURCE q"&si&":"
+  Disp "  dx = "&phys\sn(dx)&" m"
+  Disp "  dy = "&phys\sn(dy)&" m"
+  Disp "  r = "&phys\sn(r)&" m"
+  phys\pk({"F = (8.99ᴇ9)","|("&phys\sn(ql[i])&")","("&phys\sn(q0)&")|","/("&phys\sn(r)&")^2"})
+  Disp "  F = "&phys\sf(f)&" N"
+  ux:=dx/r
+  uy:=dy/r
+  If ql[i]*q0>0 Then
+    s:=1
+    Disp "  repel: away from q"&si
+  ElseIf ql[i]*q0<0 Then
+    s:=−1
+    Disp "  attract: toward q"&si
+  Else
+    s:=0
+    Disp "  zero charge: no force"
+  EndIf
+  Disp "  unit vector away from q"&si
+  phys\pk({"("&phys\sn(ux)&", ",phys\sn(uy)&")"})
+  fx:=s*f*ux
+  fy:=s*f*uy
+  Disp "  Fx = "&phys\sf(fx)&" N"
+  Disp "  Fy = "&phys\sf(fy)&" N"
+  sx:=sx+fx
+  sy:=sy+fy
+EndFor
+tol:=1ᴇ−12*tot
+If abs(sx)<tol Then
+  sx:=0
+EndIf
+If abs(sy)<tol Then
+  sy:=0
+EndIf
+fm:=√(sx^2+sy^2)
+Disp "STEP 3: Add components"
+Disp "  Fx = "&phys\sf(sx)&" N"
+Disp "  Fy = "&phys\sf(sy)&" N"
+Disp "  |F| = √(Fx^2+Fy^2)"
+Disp "  |F| = "&phys\sf(fm)&" N"
+Disp "DIRECTION:"
+If fm=0 Then
+  Disp "  none (net force is 0)"
+ElseIf sx=0 Then
+  If sy>0 Then
+    Disp "  straight +y (90° CCW)"
+  Else
+    Disp "  straight −y (270° CCW)"
+  EndIf
+ElseIf sy=0 Then
+  If sx>0 Then
+    Disp "  straight +x (0°)"
+  Else
+    Disp "  straight −x (180°)"
+  EndIf
+Else
+  ang:=tan⁻¹(abs(sy)/abs(sx))
+  Disp "  th = tan⁻¹(|Fy|/|Fx|)"
+  If sy>0 Then
+    w1:="above"
+  Else
+    w1:="below"
+  EndIf
+  If sx>0 Then
+    w2:="+x"
+  Else
+    w2:="−x"
+  EndIf
+  Disp "  "&phys\sf(ang)&"° "&w1&" "&w2&" axis"
+  If sx>0 and sy>0 Then
+    std:=ang
+  ElseIf sx<0 and sy>0 Then
+    std:=180-ang
+  ElseIf sx<0 and sy<0 Then
+    std:=180+ang
+  Else
+    std:=360-ang
+  EndIf
+  Disp "  = "&phys\sf(std)&"° CCW from +x"
+EndIf
+EndPrgm
+
+Define LibPriv m215()=
+Prgm
+Local q1,x1,q2,x2,kc,a1,a2,s1,s2,same,xl,xr,nl,nr,al,ar,x,e1,e2
+kc:=8.99ᴇ9
+phys\hdr("21.5 Zero-force point")
+phys\ask("q1 in C (E for x10^: 2.5E-6)",0)
+q1:=physv
+phys\ask("x1 (position) in m",0)
+x1:=physv
+phys\ask("q2 in C",0)
+q2:=physv
+phys\ask("x2 (position) in m",0)
+x2:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  q1 = "&phys\sn(q1)&" C"
+Disp "    at x1 = "&phys\sn(x1)&" m"
+Disp "  q2 = "&phys\sn(q2)&" C"
+Disp "    at x2 = "&phys\sn(x2)&" m"
+If x1=x2 Then
+  Disp "Same position: they act as"
+  Disp "  one charge. Need x1 ≠ x2."
+  Return
+EndIf
+If q1=0 or q2=0 Then
+  Disp "A charge is 0: only ONE"
+  Disp "  force acts on a test q,"
+  Disp "  so the net force is never"
+  Disp "  0 (only infinitely far)."
+  Return
+EndIf
+a1:=abs(q1)
+a2:=abs(q2)
+If x1<x2 Then
+  xl:=x1
+  xr:=x2
+  nl:="q1"
+  nr:="q2"
+  al:=a1
+  ar:=a2
+Else
+  xl:=x2
+  xr:=x1
+  nl:="q2"
+  nr:="q1"
+  al:=a2
+  ar:=a1
+EndIf
+same:=0
+If q1*q2>0 Then
+  same:=1
+  Disp "Signs: SAME"
+Else
+  Disp "Signs: OPPOSITE"
+EndIf
+Disp "REGION CHECK (test charge)"
+Disp "LEFT, x < "&phys\sn(xl)&":"
+If same=1 Then
+  Disp "  forces point same way:"
+  Disp "  cannot cancel -> no"
+Else
+  Disp "  forces opposite: yes"
+  If al<ar Then
+    Disp "  closer "&nl&" is smaller:"
+    Disp "  can balance -> YES"
+  Else
+    Disp "  closer "&nl&" not smaller:"
+    Disp "  it always wins -> no"
+  EndIf
+EndIf
+Disp "BETWEEN the charges:"
+If same=1 Then
+  Disp "  forces opposite: YES"
+Else
+  Disp "  forces point same way:"
+  Disp "  cannot cancel -> no"
+EndIf
+Disp "RIGHT, x > "&phys\sn(xr)&":"
+If same=1 Then
+  Disp "  forces point same way:"
+  Disp "  cannot cancel -> no"
+Else
+  Disp "  forces opposite: yes"
+  If ar<al Then
+    Disp "  closer "&nr&" is smaller:"
+    Disp "  can balance -> YES"
+  Else
+    Disp "  closer "&nr&" not smaller:"
+    Disp "  it always wins -> no"
+  EndIf
+EndIf
+If same=0 and a1=a2 Then
+  Disp "Equal size, opposite sign:"
+  Disp "  outside, the closer one"
+  Disp "  always wins. NO finite"
+  Disp "  zero-force point exists."
+  Return
+EndIf
+Disp "STEP 1: Set forces equal"
+Disp "  k|q1|/(x-x1)^2"
+Disp "    = k|q2|/(x-x2)^2"
+Disp "  √|q1|*|x-x2|"
+Disp "    = √|q2|*|x-x1|"
+s1:=√(a1)
+s2:=√(a2)
+If same=1 Then
+  Disp "STEP 2: Between, solve"
+  Disp "  x = (x1√|q2|+x2√|q1|)"
+  Disp "      /(√|q1|+√|q2|)"
+  phys\pk({"x = (("&phys\sn(x1)&")","("&phys\sn(s2)&")","+("&phys\sn(x2)&")","("&phys\sn(s1)&"))","/("&phys\sn(s1)&"+"&phys\sn(s2)&")"})
+  x:=(x1*s2+x2*s1)/(s1+s2)
+Else
+  Disp "STEP 2: Outside, solve"
+  Disp "  x = (x2√|q1|-x1√|q2|)"
+  Disp "      /(√|q1|-√|q2|)"
+  phys\pk({"x = (("&phys\sn(x2)&")","("&phys\sn(s1)&")","-("&phys\sn(x1)&")","("&phys\sn(s2)&"))","/("&phys\sn(s1)&"-"&phys\sn(s2)&")"})
+  x:=(x2*s1-x1*s2)/(s1-s2)
+EndIf
+Disp "STEP 3: Result"
+Disp "  x = "&phys\sf(x)&" m"
+If x<xl Then
+  Disp "  (left of both charges)"
+ElseIf x>xr Then
+  Disp "  (right of both charges)"
+Else
+  Disp "  (between the charges)"
+EndIf
+Disp "  nearer the smaller |q|"
+If x=x1 or x=x2 Then
+  Disp "  (too close to a charge"
+  Disp "  to check numerically)"
+  Return
+EndIf
+e1:=kc*a1/(x-x1)^2
+e2:=kc*a2/(x-x2)^2
+Disp "CHECK (force per coulomb):"
+Disp "  from q1: "&phys\sf(e1)&" N/C"
+Disp "  from q2: "&phys\sf(e2)&" N/C"
+Disp "  equal + opposite: net 0"
+EndPrgm
+
+Define LibPriv m216()=
+Prgm
+Local c,m,lt,th,q,kc,gg,mg,tt,fe,d,ratio
+kc:=8.99ᴇ9
+gg:=9.8
+setMode({2,2})
+phys\hdr("21.6 Hanging spheres")
+Disp "Equal masses m, equal q,"
+Disp "threads L at angle th"
+phys\ask("1=find q (know th) 2=find th",102)
+c:=physv
+phys\ask("m (each sphere) in kg",1)
+m:=physv
+phys\ask("L (thread length) in m",1)
+lt:=physv
+If c=1 Then
+  phys\ask("th from vertical, deg (0-90)",4)
+  th:=physv
+Else
+  phys\ask("q (each sphere) in C",3)
+  q:=physv
+EndIf
+If physok=0 Then
+  Return
+EndIf
+mg:=m*gg
+Disp "GIVEN:"
+Disp "  m = "&phys\sn(m)&" kg"
+Disp "  L = "&phys\sn(lt)&" m"
+Disp "  g = 9.8 m/s^2"
+Disp "FORCES on one sphere:"
+Disp "  T cos(th) = mg (vertical)"
+Disp "  T sin(th) = Fe (horiz.)"
+Disp "  => Fe = mg tan(th)"
+Disp "  separation d = 2L sin(th)"
+If c=1 Then
+  Disp "  th = "&phys\sn(th)&"°"
+  tt:=mg/cos(th°)
+  fe:=mg*tan(th°)
+  d:=2*lt*sin(th°)
+  q:=√(fe*d^2/kc)
+  Disp "STEP 1: Tension"
+  Disp "  T = mg/cos(th)"
+  phys\pk({"T = ("&phys\sn(m)&")(9.8)","/cos("&phys\sn(th)&"°)"})
+  Disp "  T = "&phys\sf(tt)&" N"
+  Disp "STEP 2: Electric force"
+  Disp "  Fe = mg tan(th)"
+  phys\pk({"Fe = ("&phys\sn(m)&")(9.8)","tan("&phys\sn(th)&"°)"})
+  Disp "  Fe = "&phys\sf(fe)&" N"
+  Disp "STEP 3: Separation"
+  Disp "  d = 2L sin(th)"
+  phys\pk({"d = 2("&phys\sn(lt)&")","sin("&phys\sn(th)&"°)"})
+  Disp "  d = "&phys\sf(d)&" m"
+  Disp "STEP 4: Charge"
+  Disp "  Fe = kq^2/d^2"
+  Disp "  q = √(Fe*d^2/k)"
+  phys\pk({"q = √(("&phys\sn(fe)&")","("&phys\sn(d)&")^2","/8.99ᴇ9)"})
+  Disp "  q = "&phys\sf(q)&" C"
+  Disp "SIGN: both have the same"
+  Disp "  sign (they repel); + or"
+  Disp "  - cannot be told apart."
+Else
+  Disp "  q = "&phys\sn(q)&" C"
+  Disp "STEP 1: Equation"
+  Disp "  mg tan(th) = kq^2/d^2"
+  Disp "  with d = 2L sin(th):"
+  Disp "  sin^2(th)*tan(th)"
+  Disp "    = kq^2/(4L^2*mg)"
+  ratio:=kc*q^2/(4*lt^2*mg)
+  Disp "STEP 2: Right side"
+  phys\pk({"= (8.99ᴇ9)("&phys\sn(q)&")^2","/(4("&phys\sn(lt)&")^2","("&phys\sn(m)&")(9.8))"})
+  Disp "  = "&phys\sf(ratio)
+  DelVar phzt
+  th:=nSolve(sin(phzt°)^2*tan(phzt°)=ratio,phzt,0,89.9999)
+  DelVar phzt
+  If getType(th)≠"NUM" Then
+    Disp "No angle found (0-90)."
+    Return
+  EndIf
+  Disp "STEP 3: Solve (nSolve)"
+  Disp "  0 < th < 90 deg"
+  Disp "  th = "&phys\sf(th)&"°"
+  d:=2*lt*sin(th°)
+  fe:=mg*tan(th°)
+  tt:=mg/cos(th°)
+  Disp "STEP 4: At that angle"
+  Disp "  d = 2L sin(th)"
+  Disp "    = "&phys\sf(d)&" m"
+  Disp "  Fe = mg tan(th)"
+  Disp "    = "&phys\sf(fe)&" N"
+  Disp "  T = mg/cos(th)"
+  Disp "    = "&phys\sf(tt)&" N"
+EndIf
+EndPrgm
+
+Define LibPriv m221()=
+Prgm
+Local ef,c,a,lt,wd,rf,ang,an,ap,phi
+setMode({2,2})
+phys\hdr("22.1 Flux, flat area")
+phys\ask("E (field) in N/C",2)
+ef:=physv
+phys\ask("Area: 1=enter A, 2=L x W",102)
+c:=physv
+If c=1 Then
+  phys\ask("A (area) in m^2",1)
+  a:=physv
+Else
+  phys\ask("L (length) in m",1)
+  lt:=physv
+  phys\ask("W (width) in m",1)
+  wd:=physv
+EndIf
+phys\ask("Angle from: 1=PLANE 2=NORMAL",102)
+rf:=physv
+phys\ask("Angle in deg (0-90)",5)
+ang:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  E = "&phys\sn(ef)&" N/C"
+If c=2 Then
+  a:=lt*wd
+  Disp "  L = "&phys\sn(lt)&" m"
+  Disp "  W = "&phys\sn(wd)&" m"
+  Disp "  A = L*W = "&phys\sn(a)&" m^2"
+Else
+  Disp "  A = "&phys\sn(a)&" m^2"
+EndIf
+If rf=1 Then
+  ap:=ang
+  an:=90-ang
+  Disp "  angle from PLANE given"
+Else
+  an:=ang
+  ap:=90-ang
+  Disp "  angle from NORMAL given"
+EndIf
+Disp "REASONING:"
+Disp "  Flux uses the angle"
+Disp "  between E and the NORMAL."
+Disp "  normal = 90° - plane"
+Disp "  from plane = "&phys\sn(ap)&"°"
+Disp "  from normal = "&phys\sn(an)&"°"
+Disp "STEP 1: Formula"
+Disp "  Phi = E A cos(normal)"
+Disp "      = E A sin(plane)"
+Disp "STEP 2: Plug in"
+phys\pk({"Phi = ("&phys\sn(ef)&")","("&phys\sn(a)&")","cos("&phys\sn(an)&"°)"})
+phi:=ef*a*cos(an°)
+Disp "STEP 3: Result"
+Disp "  Phi = "&phys\sf(phi)&" N*m^2/C"
+If an=90 Then
+  Disp "  E lies in the plane:"
+  Disp "  no field lines cross."
+Else
+  Disp "SIGN: + when E crosses"
+  Disp "  along the chosen normal"
+EndIf
+EndPrgm
+
+Define LibPriv m222()=
+Prgm
+Local c,q,phi,e0,n,i,si,ql,xl,yl,r,d,qen
+e0:=8.854ᴇ−12
+phys\hdr("22.2 Flux from Q_enc")
+Disp "1 Phi from Q  2 Q from Phi"
+Disp "3 charges in a sphere"
+phys\ask("1 Phi<-Q, 2 Q<-Phi, 3 sphere",103)
+c:=physv
+If physok=0 Then
+  Return
+EndIf
+If c=1 Then
+  phys\ask("Q enclosed in C (E for x10^)",0)
+  q:=physv
+  If physok=0 Then
+    Return
+  EndIf
+  Disp "GIVEN: Q_enc = "&phys\sn(q)&" C"
+  Disp "STEP 1: Gauss's law"
+  Disp "  Phi = Q_enc/ε0"
+  Disp "STEP 2: Plug in"
+  phys\pk({"Phi = ("&phys\sn(q)&")","/(8.854ᴇ−12)"})
+  phi:=q/e0
+  Disp "STEP 3: Result"
+  Disp "  Phi = "&phys\sf(phi)&" N*m^2/C"
+ElseIf c=2 Then
+  phys\ask("Phi in N*m^2/C (- if inward)",0)
+  phi:=physv
+  If physok=0 Then
+    Return
+  EndIf
+  Disp "GIVEN: Phi = "&phys\sn(phi)
+  Disp "  N*m^2/C (- = inward)"
+  Disp "STEP 1: Gauss's law"
+  Disp "  Q_enc = ε0*Phi"
+  Disp "STEP 2: Plug in"
+  phys\pk({"Q = (8.854ᴇ−12)","("&phys\sn(phi)&")"})
+  q:=e0*phi
+  Disp "STEP 3: Result"
+  Disp "  Q_enc = "&phys\sf(q)&" C"
+Else
+  phys\ask("Number of charges 1-4",104)
+  n:=physv
+  If physok=0 Then
+    Return
+  EndIf
+  ql:=newList(n)
+  xl:=newList(n)
+  yl:=newList(n)
+  For i,1,n
+    si:=string(i)
+    phys\ask("q"&si&" in C (E for x10^: 4.4E-9)",0)
+    ql[i]:=physv
+    phys\ask("x"&si&" in m",0)
+    xl[i]:=physv
+    phys\ask("y"&si&" in m",0)
+    yl[i]:=physv
+  EndFor
+  If physok=0 Then
+    Return
+  EndIf
+  Disp "GIVEN (sphere at origin):"
+  For i,1,n
+    si:=string(i)
+    phys\pk({"q"&si&" = "&phys\sn(ql[i])&" C"," at ("&phys\sn(xl[i])&",",phys\sn(yl[i])&")"})
+  EndFor
+  Loop
+    phys\ask("Sphere radius R in m",1)
+    r:=physv
+    If physok=0 Then
+      physok:=1
+      Return
+    EndIf
+    Disp "SPHERE R = "&phys\sn(r)&" m"
+    Disp "STEP 1: Which are inside?"
+    Disp "  d = √(x^2+y^2) vs R"
+    qen:=0
+    For i,1,n
+      si:=string(i)
+      d:=√(xl[i]^2+yl[i]^2)
+      Disp "  q"&si&": d = "&phys\sn(d)&" m"
+      If d<r Then
+        Disp "    d < R: inside"
+        qen:=qen+ql[i]
+      ElseIf d>r Then
+        Disp "    d > R: outside"
+      Else
+        Disp "    ON surface: excluded"
+        Disp "    (flux ill-defined)"
+      EndIf
+    EndFor
+    Disp "STEP 2: Q_enc = sum inside"
+    Disp "  Q_enc = "&phys\sf(qen)&" C"
+    Disp "STEP 3: Phi = Q_enc/ε0"
+    phys\pk({"Phi = ("&phys\sn(qen)&")","/(8.854ᴇ−12)"})
+    phi:=qen/e0
+    Disp "  Phi = "&phys\sf(phi)&" N*m^2/C"
+    If phi>0 Then
+      Disp "  net flux OUTWARD"
+    ElseIf phi<0 Then
+      Disp "  net flux INWARD"
+    Else
+      Disp "  zero net flux"
+    EndIf
+    phys\ask("Another radius? 1=yes 0=no",201)
+    If physok=0 or physv=0 Then
+      physok:=1
+      Return
+    EndIf
+  EndLoop
+EndIf
+If phi>0 Then
+  Disp "SIGN: + = net flux OUTWARD"
+  Disp "  (positive Q_enc)"
+ElseIf phi<0 Then
+  Disp "SIGN: - = net flux INWARD"
+  Disp "  (negative Q_enc)"
+Else
+  Disp "SIGN: zero (Q_enc = 0)"
+EndIf
+EndPrgm
+
+Define LibPriv m223()=
+Prgm
+Local c,s2,lam,r,ef,er,l,phi,e0
+e0:=8.854ᴇ−12
+phys\hdr("22.3 Line charge")
+Disp "1 E from λ and r"
+Disp "2 λ from E data"
+Disp "3 flux thru coax cylinder"
+phys\ask("1 E<-λ, 2 λ<-E, 3 flux",103)
+c:=physv
+If physok=0 Then
+  Return
+EndIf
+If c=1 Then
+  phys\ask("λ (lambda) in C/m",0)
+  lam:=physv
+  phys\ask("r (from the line) in m",1)
+  r:=physv
+  If physok=0 Then
+    Return
+  EndIf
+  Disp "GIVEN:"
+  Disp "  λ = "&phys\sn(lam)&" C/m"
+  Disp "  r = "&phys\sn(r)&" m"
+  Disp "GAUSS: cylinder radius r"
+  Disp "  E*2πrl = λl/ε0"
+  Disp "STEP 1: Formula"
+  Disp "  E = λ/(2π ε0 r)"
+  Disp "STEP 2: Plug in"
+  phys\pk({"E = ("&phys\sn(lam)&")","/(2π(8.854ᴇ−12)","("&phys\sn(r)&"))"})
+  ef:=lam/(2*π*e0*r)
+  Disp "STEP 3: Result"
+  If ef>0 Then
+    Disp "  E = "&phys\sf(ef)&" N/C"
+    Disp "DIRECTION: radially outward"
+    Disp "  (away from the line, λ>0)"
+  ElseIf ef<0 Then
+    Disp "  E = "&phys\sf(abs(ef))&" N/C"
+    Disp "DIRECTION: radially inward"
+    Disp "  (toward the line, λ<0)"
+  Else
+    Disp "  E = 0 (no charge)"
+  EndIf
+ElseIf c=2 Then
+  phys\ask("Data: 1=E and r, 2=product E*r",102)
+  s2:=physv
+  If s2=1 Then
+    phys\ask("E in N/C (- if inward)",0)
+    ef:=physv
+    phys\ask("r in m",1)
+    r:=physv
+  Else
+    phys\ask("E*r in N*m/C (N*cm/C: end cm)",0)
+    er:=physv
+  EndIf
+  If physok=0 Then
+    Return
+  EndIf
+  Disp "GIVEN:"
+  If s2=1 Then
+    Disp "  E = "&phys\sn(ef)&" N/C"
+    Disp "  r = "&phys\sn(r)&" m"
+    er:=ef*r
+    Disp "  E*r = "&phys\sn(er)&" N*m/C"
+  Else
+    Disp "  E*r = "&phys\sn(er)&" N*m/C"
+  EndIf
+  Disp "REASONING: E = λ/(2πε0 r)"
+  Disp "  so E*r is constant and"
+  Disp "STEP 1: λ = 2π ε0 (E r)"
+  Disp "STEP 2: Plug in"
+  phys\pk({"λ = 2π(8.854ᴇ−12)","("&phys\sn(er)&")"})
+  lam:=2*π*e0*er
+  Disp "STEP 3: Result"
+  Disp "  λ = "&phys\sf(lam)&" C/m"
+  If lam>0 Then
+    Disp "  + : E points outward"
+  ElseIf lam<0 Then
+    Disp "  - : E points inward"
+  EndIf
+Else
+  phys\ask("λ (lambda) in C/m",0)
+  lam:=physv
+  phys\ask("l (cylinder length) in m",1)
+  l:=physv
+  If physok=0 Then
+    Return
+  EndIf
+  Disp "GIVEN:"
+  Disp "  λ = "&phys\sn(lam)&" C/m"
+  Disp "  l = "&phys\sn(l)&" m"
+  Disp "REASONING:"
+  Disp "  Q_enc = λ*l (line inside)"
+  Disp "  E is parallel to the end"
+  Disp "  caps: flux only on side."
+  Disp "  Radius does NOT matter."
+  Disp "STEP 1: Phi = λ*l/ε0"
+  Disp "STEP 2: Plug in"
+  phys\pk({"Phi = ("&phys\sn(lam)&")","("&phys\sn(l)&")","/(8.854ᴇ−12)"})
+  phi:=lam*l/e0
+  Disp "STEP 3: Result"
+  Disp "  Phi = "&phys\sf(phi)&" N*m^2/C"
+  If phi>0 Then
+    Disp "  net flux OUTWARD"
+  ElseIf phi<0 Then
+    Disp "  net flux INWARD"
+  EndIf
+EndIf
+EndPrgm
+
+Define LibPriv m224(f)=
+Prgm
+Local c,q,rr,r,n,i,si,ql,rl,qen,ev,kc,a,rho,b,rm,tq,fv
+kc:=8.99ᴇ9
+If f=1 Then
+  phys\hdr("22.5 Force from shell")
+Else
+  phys\hdr("22.4 Sphere: E at r")
+EndIf
+Disp "1 point charge / thin shell"
+Disp "2 insulating solid sphere"
+Disp "3 conducting sphere"
+Disp "4 concentric shells"
+Disp "5 q in cavity of material"
+phys\ask("Object type 1-5",105)
+c:=physv
+If physok=0 Then
+  Return
+EndIf
+If c=1 Then
+  phys\ask("Q (total) in C (E for x10^)",0)
+  q:=physv
+  phys\ask("Shell radius R in m (0=point)",2)
+  rr:=physv
+  phys\ask("r (from center) in m",1)
+  r:=physv
+ElseIf c=2 or c=3 Then
+  phys\ask("Q (total) in C (E for x10^)",0)
+  q:=physv
+  phys\ask("Sphere radius R in m",1)
+  rr:=physv
+  phys\ask("r (from center) in m",1)
+  r:=physv
+ElseIf c=4 Then
+  phys\ask("Number of shells 1-4",104)
+  n:=physv
+  If physok=0 Then
+    Return
+  EndIf
+  ql:=newList(n)
+  rl:=newList(n)
+  For i,1,n
+    si:=string(i)
+    phys\ask("Q"&si&" in C (E for x10^)",0)
+    ql[i]:=physv
+    phys\ask("R"&si&" (radius) in m",2)
+    rl[i]:=physv
+  EndFor
+  phys\ask("r (from center) in m",1)
+  r:=physv
+Else
+  phys\ask("q at center in C (E for x10^)",0)
+  q:=physv
+  phys\ask("Cavity radius a in m",1)
+  a:=physv
+  phys\ask("rho (density) in C/m^3",0)
+  rho:=physv
+  phys\ask("Outer radius b in m (0=none)",2)
+  b:=physv
+  phys\ask("r (from center) in m",1)
+  r:=physv
+EndIf
+If f=1 Then
+  phys\ask("Test charge q in C (at r)",0)
+  tq:=physv
+EndIf
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+If c=4 Then
+  For i,1,n
+    si:=string(i)
+    Disp "  Q"&si&" = "&phys\sn(ql[i])&" C"
+    Disp "    R"&si&" = "&phys\sn(rl[i])&" m"
+  EndFor
+ElseIf c=5 Then
+  Disp "  q = "&phys\sn(q)&" C"
+  Disp "  a = "&phys\sn(a)&" m"
+  Disp "  rho = "&phys\sn(rho)&" C/m^3"
+  If b>0 Then
+    Disp "  b = "&phys\sn(b)&" m"
+  Else
+    Disp "  material has no outer edge"
+  EndIf
+Else
+  Disp "  Q = "&phys\sn(q)&" C"
+  If rr=0 Then
+    Disp "  point charge (R = 0)"
+  Else
+    Disp "  R = "&phys\sn(rr)&" m"
+  EndIf
+EndIf
+Disp "  r = "&phys\sn(r)&" m"
+Disp "GAUSS: sphere of radius r"
+Disp "  E*4πr^2 = Q_enc/ε0"
+Disp "  => E = kQ_enc/r^2"
+Disp "STEP 1: Charge enclosed"
+If c=1 Then
+  If r<rr Then
+    Disp "  r < R: inside the shell,"
+    Disp "  no charge enclosed"
+    qen:=0
+  Else
+    If r=rr Then
+      Disp "  r = R: on the shell;"
+      Disp "  using just outside"
+    Else
+      Disp "  r > R: all of Q inside"
+    EndIf
+    qen:=q
+  EndIf
+ElseIf c=2 Then
+  If r<rr Then
+    Disp "  r < R: only part of the"
+    Disp "  charge is inside:"
+    Disp "  Q_enc = Q r^3/R^3"
+    phys\pk({"Q_enc = ("&phys\sn(q)&")","("&phys\sn(r)&")^3","/("&phys\sn(rr)&")^3"})
+    qen:=q*r^3/rr^3
+    Disp "  (same as E = kQr/R^3)"
+  Else
+    Disp "  r ≥ R: all of Q inside"
+    qen:=q
+  EndIf
+ElseIf c=3 Then
+  If r<rr Then
+    Disp "  r < R: inside a conductor"
+    Disp "  E = 0; charge sits on the"
+    Disp "  surface, Q_enc = 0"
+    qen:=0
+  Else
+    If r=rr Then
+      Disp "  r = R: at the surface;"
+      Disp "  using just outside"
+    Else
+      Disp "  r > R: all of Q inside"
+    EndIf
+    qen:=q
+  EndIf
+ElseIf c=4 Then
+  qen:=0
+  For i,1,n
+    si:=string(i)
+    If rl[i]≤r Then
+      Disp "  shell "&si&": R ≤ r, enclosed"
+      qen:=qen+ql[i]
+    Else
+      Disp "  shell "&si&": R > r, not inside"
+    EndIf
+  EndFor
+  Disp "  Q_enc = sum of enclosed"
+Else
+  If b>0 and b≤a Then
+    Disp "Outer radius b must be"
+    Disp "  bigger than cavity a."
+    Return
+  EndIf
+  rm:=r
+  If b>0 and r>b Then
+    rm:=b
+  EndIf
+  If r<a Then
+    Disp "  r < a: in the cavity,"
+    Disp "  only q is enclosed"
+    qen:=q
+  Else
+    Disp "  Q_enc = q + rho*V"
+    Disp "  V = (4/3)π(r^3 - a^3)"
+    If rm<r Then
+      Disp "  r > b: material ends at b"
+      Disp "  so use b instead of r"
+    EndIf
+    phys\pk({"Q_enc = ("&phys\sn(q)&")","+("&phys\sn(rho)&")","(4/3)π","(("&phys\sn(rm)&")^3","-("&phys\sn(a)&")^3)"})
+    qen:=q+rho*(4/3)*π*(rm^3-a^3)
+  EndIf
+EndIf
+Disp "  Q_enc = "&phys\sf(qen)&" C"
+Disp "STEP 2: E = kQ_enc/r^2"
+phys\pk({"E = (8.99ᴇ9)","("&phys\sn(qen)&")","/("&phys\sn(r)&")^2"})
+ev:=kc*qen/r^2
+Disp "STEP 3: Result"
+If ev>0 Then
+  Disp "  E = "&phys\sf(ev)&" N/C outward"
+ElseIf ev<0 Then
+  Disp "  E = "&phys\sf(abs(ev))&" N/C inward"
+Else
+  Disp "  E = 0 N/C"
+EndIf
+Disp "DIRECTION: Q_enc>0 outward,"
+Disp "  Q_enc<0 inward (to center)"
+Disp "Signed (+ = away from ctr):"
+Disp "  E = "&phys\sf(ev)&" N/C"
+If f=1 Then
+  fv:=tq*ev
+  Disp "STEP 4: Force on q"
+  Disp "  F = qE = kqQ_enc/r^2"
+  Disp "  (r = distance of q from"
+  Disp "  the center, NOT R)"
+  phys\pk({"F = ("&phys\sn(tq)&")","("&phys\sf(ev)&")"})
+  Disp "  |F| = "&phys\sf(abs(fv))&" N"
+  If fv>0 Then
+    Disp "  pushed AWAY from center"
+  ElseIf fv<0 Then
+    Disp "  pulled TOWARD the center"
+  Else
+    Disp "  no force"
+  EndIf
+  Disp "  Signed: F = "&phys\sf(fv)&" N"
+EndIf
+EndPrgm
+
+Define LibPriv m225()=
+Prgm
+phys\m224(1)
+EndPrgm
+
+Define LibPriv m226()=
+Prgm
+Local c,q,rr,er2,phi,e0,sig,rho,ev
+e0:=8.854ᴇ−12
+phys\hdr("22.6 Charge densities")
+Disp "1 σ = Q/(4πR^2) surface"
+Disp "2 ρ = Q/((4/3)πR^3)"
+Disp "3 ρ from E*r^2 data"
+Disp "4 sphere from its flux"
+phys\ask("Type 1-4",104)
+c:=physv
+If c=1 or c=2 Then
+  phys\ask("Q in C (E for x10^)",0)
+  q:=physv
+ElseIf c=3 Then
+  phys\ask("E*r^2 in N*m^2/C",0)
+  er2:=physv
+Else
+  phys\ask("Phi in N*m^2/C (- if inward)",0)
+  phi:=physv
+EndIf
+phys\ask("Sphere radius R in m",1)
+rr:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  R = "&phys\sn(rr)&" m"
+If c=1 Then
+  Disp "  Q = "&phys\sn(q)&" C"
+  Disp "STEP 1: σ = Q/(4πR^2)"
+  phys\pk({"σ = ("&phys\sn(q)&")","/(4π("&phys\sn(rr)&")^2)"})
+  sig:=q/(4*π*rr^2)
+  Disp "STEP 2: Result"
+  Disp "  σ = "&phys\sf(sig)&" C/m^2"
+ElseIf c=2 Then
+  Disp "  Q = "&phys\sn(q)&" C"
+  Disp "STEP 1: ρ = Q/((4/3)πR^3)"
+  phys\pk({"ρ = ("&phys\sn(q)&")","/((4/3)π","("&phys\sn(rr)&")^3)"})
+  rho:=q/((4/3)*π*rr^3)
+  Disp "STEP 2: Result"
+  Disp "  ρ = "&phys\sf(rho)&" C/m^3"
+ElseIf c=3 Then
+  Disp "  E*r^2 = "&phys\sn(er2)
+  Disp "REASONING: outside, E=kQ/r^2"
+  Disp "  so E*r^2 = Q/(4π ε0)"
+  Disp "STEP 1: Q = 4π ε0 (E r^2)"
+  phys\pk({"Q = 4π(8.854ᴇ−12)","("&phys\sn(er2)&")"})
+  q:=4*π*e0*er2
+  Disp "  Q = "&phys\sf(q)&" C"
+  Disp "STEP 2: ρ = Q/((4/3)πR^3)"
+  Disp "  = 3 ε0 (E r^2)/R^3"
+  phys\pk({"ρ = 3(8.854ᴇ−12)","("&phys\sn(er2)&")","/("&phys\sn(rr)&")^3"})
+  rho:=3*e0*er2/rr^3
+  Disp "STEP 3: Result"
+  Disp "  ρ = "&phys\sf(rho)&" C/m^3"
+Else
+  Disp "  Phi = "&phys\sn(phi)
+  Disp "    N*m^2/C (- = inward)"
+  Disp "STEP 1: Q = ε0*Phi"
+  phys\pk({"Q = (8.854ᴇ−12)","("&phys\sn(phi)&")"})
+  q:=e0*phi
+  Disp "  Q = "&phys\sf(q)&" C"
+  Disp "STEP 2: E = |Phi|/(4πR^2)"
+  Disp "  (E same all over surface)"
+  phys\pk({"E = "&phys\sn(abs(phi)),"/(4π("&phys\sn(rr)&")^2)"})
+  ev:=abs(phi)/(4*π*rr^2)
+  If phi<0 Then
+    Disp "  E = "&phys\sf(ev)&" N/C inward"
+  Else
+    Disp "  E = "&phys\sf(ev)&" N/C outward"
+  EndIf
+  Disp "STEP 3: σ = Q/(4πR^2)"
+  phys\pk({"σ = ("&phys\sn(q)&")","/(4π("&phys\sn(rr)&")^2)"})
+  sig:=q/(4*π*rr^2)
+  Disp "  σ = "&phys\sf(sig)&" C/m^2"
+EndIf
+EndPrgm
+
+Define LibPriv m227()=
+Prgm
+Local lam,lo,a,b,c,r,e0,ev
+e0:=8.854ᴇ−12
+phys\hdr("22.7 Coaxial cable")
+phys\ask("Inner λ in C/m (E for x10^)",0)
+lam:=physv
+phys\ask("Outer net λ in C/m (0=neutral)",0)
+lo:=physv
+phys\ask("Inner radius a in m (0=line)",2)
+a:=physv
+phys\ask("Outer cond. inner radius b, m",1)
+b:=physv
+phys\ask("Outer cond. outer radius c, m",1)
+c:=physv
+phys\ask("r (from axis) in m",1)
+r:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  λ inner = "&phys\sn(lam)&" C/m"
+Disp "  λ outer = "&phys\sn(lo)&" C/m"
+Disp "  a = "&phys\sn(a)&" m"
+Disp "  b = "&phys\sn(b)&" m"
+Disp "  c = "&phys\sn(c)&" m"
+Disp "  r = "&phys\sn(r)&" m"
+If not (a<b and b<c) Then
+  Disp "Need a < b < c (inner wire"
+  Disp "  inside the outer tube)."
+  Return
+EndIf
+Disp "INDUCED CHARGE (Gauss):"
+Disp "  E = 0 inside the outer"
+Disp "  conductor, so a surface"
+Disp "  there encloses 0 charge:"
+Disp "  inner surface: "&phys\sf(−lam)
+Disp "  outer surface: "&phys\sf(lam+lo)
+Disp "  (both in C/m)"
+Disp "STEP 1: Region of r"
+If r<a Then
+  Disp "  r < a: inside the inner"
+  Disp "  conductor: E = 0"
+  ev:=0
+ElseIf r<b Then
+  Disp "  a ≤ r < b: between them"
+  Disp "  Q_enc/l = λ inner"
+  Disp "STEP 2: E = λ/(2π ε0 r)"
+  phys\pk({"E = ("&phys\sn(lam)&")","/(2π(8.854ᴇ−12)","("&phys\sn(r)&"))"})
+  ev:=lam/(2*π*e0*r)
+ElseIf r<c Then
+  Disp "  b ≤ r < c: inside outer"
+  Disp "  conductor: E = 0"
+  ev:=0
+Else
+  Disp "  r ≥ c: outside the cable"
+  Disp "  Q_enc/l = λ + λ outer"
+  Disp "STEP 2: E=(λ+λo)/(2π ε0 r)"
+  phys\pk({"E = ("&phys\sn(lam+lo)&")","/(2π(8.854ᴇ−12)","("&phys\sn(r)&"))"})
+  ev:=(lam+lo)/(2*π*e0*r)
+EndIf
+Disp "STEP 3: Result"
+If ev>0 Then
+  Disp "  E = "&phys\sf(ev)&" N/C"
+  Disp "  radially OUTWARD"
+ElseIf ev<0 Then
+  Disp "  E = "&phys\sf(abs(ev))&" N/C"
+  Disp "  radially INWARD"
+Else
+  Disp "  E = 0 N/C"
+EndIf
+EndPrgm
+
+Define LibPriv m231()=
+Prgm
+Local c,n,i,j,si,sj,ql,xl,yl,np,qa,qb,rl,kc,r,u,ut
+kc:=8.99ᴇ9
+phys\hdr("23.1 U of charges")
+Disp "1 charges at (x,y)"
+Disp "2 enter pairs (qa,qb,r)"
+phys\ask("1=positions 2=pairs directly",102)
+c:=physv
+If physok=0 Then
+  Return
+EndIf
+ut:=0
+If c=1 Then
+  n:=0
+  While n<2 and physok=1
+    phys\ask("Number of charges 2-4",104)
+    n:=physv
+    If n<2 and physok=1 Then
+      Text "U needs at least 2 charges"
+    EndIf
+  EndWhile
+  If physok=0 Then
+    Return
+  EndIf
+  ql:=newList(n)
+  xl:=newList(n)
+  yl:=newList(n)
+  For i,1,n
+    si:=string(i)
+    phys\ask("q"&si&" in C (E for x10^: 1.2E-6)",0)
+    ql[i]:=physv
+    phys\ask("x"&si&" in m",0)
+    xl[i]:=physv
+    phys\ask("y"&si&" in m",0)
+    yl[i]:=physv
+  EndFor
+  If physok=0 Then
+    Return
+  EndIf
+  Disp "GIVEN:"
+  For i,1,n
+    si:=string(i)
+    phys\pk({"q"&si&" = "&phys\sn(ql[i])&" C"," at ("&phys\sn(xl[i])&",",phys\sn(yl[i])&")"})
+  EndFor
+  Disp "STEP 1: U = sum k qi qj/rij"
+  Disp "  (each pair counted once)"
+  Disp "STEP 2: Each pair"
+  For i,1,n-1
+    For j,i+1,n
+      si:=string(i)
+      sj:=string(j)
+      r:=√((xl[i]-xl[j])^2+(yl[i]-yl[j])^2)
+      If r=0 Then
+        Disp "q"&si&" and q"&sj&" coincide:"
+        Disp "  r = 0, U is infinite."
+        Return
+      EndIf
+      u:=kc*ql[i]*ql[j]/r
+      Disp "PAIR "&si&"-"&sj&": r = "&phys\sn(r)&" m"
+      phys\pk({"U = (8.99ᴇ9)","("&phys\sn(ql[i])&")","("&phys\sn(ql[j])&")","/("&phys\sn(r)&")"})
+      Disp "  U"&si&sj&" = "&phys\sf(u)&" J"
+      ut:=ut+u
+    EndFor
+  EndFor
+Else
+  phys\ask("Number of pairs 1-6",106)
+  np:=physv
+  If physok=0 Then
+    Return
+  EndIf
+  qa:=newList(np)
+  qb:=newList(np)
+  rl:=newList(np)
+  For j,1,np
+    sj:=string(j)
+    phys\ask("Pair "&sj&": 1st charge in C",0)
+    qa[j]:=physv
+    phys\ask("Pair "&sj&": 2nd charge in C",0)
+    qb[j]:=physv
+    phys\ask("Pair "&sj&": distance r in m",1)
+    rl[j]:=physv
+  EndFor
+  If physok=0 Then
+    Return
+  EndIf
+  Disp "STEP 1: U = sum k qa qb/r"
+  Disp "  (each pair counted once)"
+  Disp "STEP 2: Each pair"
+  For j,1,np
+    sj:=string(j)
+    u:=kc*qa[j]*qb[j]/rl[j]
+    Disp "PAIR "&sj&": r = "&phys\sn(rl[j])&" m"
+    phys\pk({"U = (8.99ᴇ9)","("&phys\sn(qa[j])&")","("&phys\sn(qb[j])&")","/("&phys\sn(rl[j])&")"})
+    Disp "  U"&sj&" = "&phys\sf(u)&" J"
+    ut:=ut+u
+  EndFor
+EndIf
+Disp "STEP 3: Total"
+Disp "  U = "&phys\sf(ut)&" J"
+If ut<0 Then
+  Disp "  U < 0: bound system, work"
+  Disp "  is needed to pull the"
+  Disp "  charges apart."
+ElseIf ut>0 Then
+  Disp "  U > 0: work was needed to"
+  Disp "  push them together."
+EndIf
+EndPrgm
+
+Define LibPriv m232()=
+Prgm
+Local c,n,i,j,si,ql,xl,yl,pxl,pyl,pnm,np,v,sa,r,t,q,w,kc,lb,vl,ax,ay,bx,by,va,vb
+kc:=8.99ᴇ9
+phys\hdr("23.2 V from charges")
+Disp "1 V at one point P"
+Disp "2 Va, Vb and work a->b"
+phys\ask("1=V at P  2=Va, Vb and work",102)
+c:=physv
+phys\ask("Number of charges 1-4",104)
+n:=physv
+If physok=0 Then
+  Return
+EndIf
+ql:=newList(n)
+xl:=newList(n)
+yl:=newList(n)
+For i,1,n
+  si:=string(i)
+  phys\ask("q"&si&" in C (E for x10^: 2E-6)",0)
+  ql[i]:=physv
+  phys\ask("x"&si&" in m",0)
+  xl[i]:=physv
+  phys\ask("y"&si&" in m",0)
+  yl[i]:=physv
+EndFor
+If c=1 Then
+  phys\ask("Point P: x in m",0)
+  ax:=physv
+  phys\ask("Point P: y in m",0)
+  ay:=physv
+  pxl:={ax}
+  pyl:={ay}
+  pnm:={"P"}
+  np:=1
+Else
+  phys\ask("Point a: x in m",0)
+  ax:=physv
+  phys\ask("Point a: y in m",0)
+  ay:=physv
+  phys\ask("Point b: x in m",0)
+  bx:=physv
+  phys\ask("Point b: y in m",0)
+  by:=physv
+  phys\ask("Moved charge q in C",0)
+  q:=physv
+  pxl:={ax,bx}
+  pyl:={ay,by}
+  pnm:={"a","b"}
+  np:=2
+EndIf
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+For i,1,n
+  si:=string(i)
+  phys\pk({"q"&si&" = "&phys\sn(ql[i])&" C"," at ("&phys\sn(xl[i])&",",phys\sn(yl[i])&")"})
+EndFor
+For j,1,np
+  phys\pk({"point "&pnm[j]&" = ("&phys\sn(pxl[j])&",",phys\sn(pyl[j])&")"})
+EndFor
+If c=2 Then
+  Disp "  moved q = "&phys\sn(q)&" C"
+EndIf
+Disp "STEP 1: V = sum k qi/ri"
+Disp "  (scalar: keep the signs)"
+vl:=newList(np)
+For j,1,np
+  lb:=pnm[j]
+  Disp "POINT "&lb&":"
+  v:=0
+  sa:=0
+  For i,1,n
+    si:=string(i)
+    r:=√((pxl[j]-xl[i])^2+(pyl[j]-yl[i])^2)
+    If r=0 Then
+      Disp "Point "&lb&" is ON q"&si&":"
+      Disp "  r = 0, V is infinite."
+      Return
+    EndIf
+    t:=kc*ql[i]/r
+    Disp "  r"&si&" = "&phys\sn(r)&" m"
+    Disp "  kq"&si&"/r"&si&" = "&phys\sf(t)&" V"
+    v:=v+t
+    sa:=sa+abs(t)
+  EndFor
+  If abs(v)<1ᴇ−9*sa Then
+    v:=0
+  EndIf
+  Disp "  V"&lb&" = "&phys\sf(v)&" V"
+  vl[j]:=v
+EndFor
+If c=2 Then
+  va:=vl[1]
+  vb:=vl[2]
+  Disp "STEP 2: Work by E force"
+  Disp "  W = q(Va - Vb)"
+  phys\pk({"W = ("&phys\sn(q)&")","("&phys\sf(va)&"-(",phys\sf(vb)&"))"})
+  w:=q*(va-vb)
+  Disp "  W = "&phys\sf(w)&" J"
+  If w>0 Then
+    Disp "  W > 0: the field does"
+    Disp "  positive work on q"
+  ElseIf w<0 Then
+    Disp "  W < 0: the field opposes"
+    Disp "  the move a->b"
+  Else
+    Disp "  W = 0: same potential"
+  EndIf
+  Disp "  Outside agent (slow move)"
+  Disp "  does -W = "&phys\sf(−w)&" J"
+EndIf
+EndPrgm
+
+Define LibPriv m233()=
+Prgm
+Local q,ka,kb,d,kv,va,vb,w,dv,ef
+phys\hdr("23.3 Work-energy")
+phys\ask("Charge q in C (E for x10^)",3)
+q:=physv
+phys\ask("K at A in J (0 if from rest)",2)
+ka:=physv
+phys\ask("K at B in J",2)
+kb:=physv
+phys\ask("Distance A to B, m (0=unknown)",2)
+d:=physv
+phys\ask("Know V at A? 1=yes 0=no",201)
+kv:=physv
+If kv=1 Then
+  phys\ask("VA in V",0)
+  va:=physv
+EndIf
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  q = "&phys\sn(q)&" C"
+Disp "  KA = "&phys\sn(ka)&" J"
+Disp "  KB = "&phys\sn(kb)&" J"
+If d>0 Then
+  Disp "  d = "&phys\sn(d)&" m"
+EndIf
+If kv=1 Then
+  Disp "  VA = "&phys\sn(va)&" V"
+EndIf
+Disp "STEP 1: Work-energy thm"
+Disp "  W(field) = KB - KA"
+phys\pk({"W = ("&phys\sn(kb)&")","-("&phys\sn(ka)&")"})
+w:=kb-ka
+Disp "  W = "&phys\sf(w)&" J"
+Disp "STEP 2: Va - Vb = W/q"
+phys\pk({"Va-Vb = ("&phys\sf(w)&")","/("&phys\sn(q)&")"})
+dv:=w/q
+Disp "  Va - Vb = "&phys\sf(dv)&" V"
+If kv=1 Then
+  vb:=va-dv
+  Disp "STEP: VB = VA - (Va-Vb)"
+  phys\pk({"VB = ("&phys\sn(va)&")","-("&phys\sf(dv)&")"})
+  Disp "  VB = "&phys\sf(vb)&" V"
+EndIf
+If d>0 Then
+  ef:=abs(dv)/d
+  Disp "STEP: E = |Va - Vb|/d"
+  phys\pk({"E = "&phys\sf(abs(dv)),"/("&phys\sn(d)&")"})
+  Disp "  E = "&phys\sf(ef)&" V/m"
+EndIf
+Disp "DIRECTION:"
+If dv>0 Then
+  Disp "  Va > Vb: E points from"
+  Disp "  A toward B (high to low V)"
+ElseIf dv<0 Then
+  Disp "  Vb > Va: E points from"
+  Disp "  B toward A (high to low V)"
+Else
+  Disp "  Va = Vb: no field along AB"
+EndIf
+Disp "RULE: + charges speed up"
+Disp "  moving toward LOWER V;"
+Disp "  - charges speed up moving"
+Disp "  toward HIGHER V."
+If w>0 and q>0 Then
+  Disp "  Here: +q gained K, so it"
+  Disp "  moved to lower V."
+ElseIf w>0 and q<0 Then
+  Disp "  Here: -q gained K, so it"
+  Disp "  moved to higher V."
+EndIf
+EndPrgm
+
+Define LibPriv m234()=
+Prgm
+Local c,m,q,v1,v2,k1,k2,dk,dv,me,mp,qe,nm
+me:=9.109ᴇ−31
+mp:=1.673ᴇ−27
+qe:=1.602ᴇ−19
+phys\hdr("23.4 Accelerate/stop")
+Disp "1 electron  2 proton"
+Disp "3 custom m and q"
+phys\ask("Particle: 1=e- 2=p+ 3=custom",103)
+c:=physv
+If c=1 Then
+  m:=me
+  q:=−qe
+  nm:="electron"
+ElseIf c=2 Then
+  m:=mp
+  q:=qe
+  nm:="proton"
+Else
+  phys\ask("Mass m in kg",1)
+  m:=physv
+  phys\ask("Charge q in C",3)
+  q:=physv
+  nm:="particle"
+EndIf
+phys\ask("Initial speed v1 in m/s",2)
+v1:=physv
+phys\ask("Final speed v2 in m/s",2)
+v2:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN: "&nm
+Disp "  m = "&phys\sn(m)&" kg"
+Disp "  q = "&phys\sn(q)&" C"
+Disp "  v1 = "&phys\sn(v1)&" m/s"
+Disp "  v2 = "&phys\sn(v2)&" m/s"
+Disp "STEP 1: Kinetic energies"
+Disp "  K = (1/2) m v^2"
+phys\pk({"K1 = 0.5("&phys\sn(m)&")","("&phys\sn(v1)&")^2"})
+k1:=0.5*m*v1^2
+Disp "  K1 = "&phys\sf(k1)&" J"
+phys\pk({"K2 = 0.5("&phys\sn(m)&")","("&phys\sn(v2)&")^2"})
+k2:=0.5*m*v2^2
+Disp "  K2 = "&phys\sf(k2)&" J"
+dk:=k2-k1
+Disp "  ΔK = K2 - K1 = "&phys\sf(dk)&" J"
+Disp "STEP 2: W(field) = ΔK"
+Disp "  q(V1 - V2) = ΔK"
+Disp "  V1 - V2 = ΔK/q"
+phys\pk({"V1-V2 = ("&phys\sf(dk)&")","/("&phys\sn(q)&")"})
+dv:=dk/q
+Disp "  V1 - V2 = "&phys\sf(dv)&" V"
+Disp "STEP 3: Result"
+Disp "  |ΔV| = "&phys\sf(abs(dv))&" V"
+If dv>0 Then
+  Disp "  V2 < V1: it must move to"
+  Disp "  a point "&phys\sf(dv)&" V LOWER"
+ElseIf dv<0 Then
+  Disp "  V2 > V1: it must move to"
+  Disp "  a point "&phys\sf(abs(dv))&" V HIGHER"
+Else
+  Disp "  no potential difference"
+EndIf
+EndPrgm
+
+Define LibPriv m235()=
+Prgm
+Local v,ef,r,q,kc
+kc:=8.99ᴇ9
+phys\hdr("23.5 Point q from V,E")
+phys\ask("V (potential) in V",3)
+v:=physv
+phys\ask("E (field magnitude) in V/m",1)
+ef:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  V = "&phys\sn(v)&" V"
+Disp "  E = "&phys\sn(ef)&" V/m"
+Disp "REASONING: point charge"
+Disp "  V = kq/r, E = k|q|/r^2"
+Disp "  so |V|/E = r"
+Disp "STEP 1: r = |V|/E"
+phys\pk({"r = "&phys\sn(abs(v)),"/"&phys\sn(ef)})
+r:=abs(v)/ef
+Disp "  r = "&phys\sf(r)&" m"
+Disp "STEP 2: q = rV/k"
+phys\pk({"q = ("&phys\sf(r)&")","("&phys\sn(v)&")","/8.99ᴇ9"})
+q:=r*v/kc
+Disp "  q = "&phys\sf(q)&" C"
+Disp "DIRECTION:"
+If q>0 Then
+  Disp "  q > 0: E points AWAY"
+  Disp "  from the charge"
+Else
+  Disp "  q < 0: E points TOWARD"
+  Disp "  the charge"
+EndIf
+EndPrgm
+
+Define LibPriv m236()=
+Prgm
+Local c,lam,ra,rb,q,r1,r2,e0,dv,kk,f
+e0:=8.854ᴇ−12
+phys\hdr("23.6 Line charge V")
+Disp "1 Va - Vb near a line"
+Disp "2 K gained moving r1->r2"
+phys\ask("1=Va-Vb  2=K gained by q",102)
+c:=physv
+If c=1 Then
+  phys\ask("λ (lambda) in C/m",0)
+  lam:=physv
+  phys\ask("ra (point a) in m",1)
+  ra:=physv
+  phys\ask("rb (point b) in m",1)
+  rb:=physv
+Else
+  phys\ask("Moving charge q in C",0)
+  q:=physv
+  phys\ask("λ (lambda) in C/m",0)
+  lam:=physv
+  phys\ask("Start r1 in m",1)
+  r1:=physv
+  phys\ask("End r2 in m",1)
+  r2:=physv
+EndIf
+If physok=0 Then
+  Return
+EndIf
+f:=lam/(2*π*e0)
+Disp "GIVEN:"
+Disp "  λ = "&phys\sn(lam)&" C/m"
+If c=1 Then
+  Disp "  ra = "&phys\sn(ra)&" m"
+  Disp "  rb = "&phys\sn(rb)&" m"
+  Disp "STEP 1: Formula"
+  Disp "  Va-Vb = λ/(2πε0) ln(rb/ra)"
+  Disp "STEP 2: Plug in"
+  phys\pk({"Va-Vb = ("&phys\sn(lam)&")","/(2π(8.854ᴇ−12))","ln("&phys\sn(rb)&"/"&phys\sn(ra)&")"})
+  dv:=f*ln(rb/ra)
+  Disp "STEP 3: Result"
+  Disp "  Va - Vb = "&phys\sf(dv)&" V"
+  If dv>0 Then
+    Disp "  a is at the higher V"
+  ElseIf dv<0 Then
+    Disp "  b is at the higher V"
+  EndIf
+  Disp "  (λ>0: closer = higher V)"
+Else
+  Disp "  q = "&phys\sn(q)&" C"
+  Disp "  r1 = "&phys\sn(r1)&" m"
+  Disp "  r2 = "&phys\sn(r2)&" m"
+  Disp "REASONING: K = W(field)"
+  Disp "  = q(V1 - V2)"
+  Disp "  V1-V2 = λ/(2πε0) ln(r2/r1)"
+  Disp "STEP 1: λ/(2π ε0)"
+  Disp "  = "&phys\sf(f)&" V"
+  Disp "STEP 2: K = q λ/(2πε0)"
+  Disp "        * ln(r2/r1)"
+  phys\pk({"K = ("&phys\sn(q)&")","("&phys\sf(f)&")","ln("&phys\sn(r2)&"/"&phys\sn(r1)&")"})
+  kk:=q*f*ln(r2/r1)
+  Disp "STEP 3: Result"
+  Disp "  K = "&phys\sf(kk)&" J"
+  If kk<0 Then
+    Disp "  Negative: the field slows"
+    Disp "  q; starting from rest it"
+    Disp "  cannot get there."
+  EndIf
+EndIf
+EndPrgm
+
+Define LibPriv m237()=
+Prgm
+Local s,t,i,n,c,pc,nc,lt,ok,vv,ex,ey,ez,eqs,vars,sol,ss
+phys\hdr("23.7 E from V(x,y,z)")
+Disp "Type V with * between"
+Disp "letters: A*x*y-B*x^2+C*y"
+s:="@@"
+RequestStr "V(x,y,z)= use * e.g. A*x*y",s,0
+If s="@@" or s="" Then
+  physok:=0
+  Return
+EndIf
+DelVar phza,phzb,phzc,phzd,phze,phzf,phzg,phzh,phzi,phzj,phzk,phzl,phzm,phzn,phzo,phzp,phzq,phzr,phzs,phzt,phzu,phzv,phzw,phzx,phzy,phzz
+lt:="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+t:=""
+n:=dim(s)
+For i,1,n
+  c:=mid(s,i,1)
+  If inString(lt,c)>0 Then
+    If i>1 Then
+      pc:=mid(s,i-1,1)
+    Else
+      pc:=" "
+    EndIf
+    If i<n Then
+      nc:=mid(s,i+1,1)
+    Else
+      nc:=" "
+    EndIf
+    If inString(lt&"0123456789_",pc)=0 and inString(lt&"0123456789_(",nc)=0 Then
+      c:="phz"&phys\lc(c)
+    EndIf
+  EndIf
+  t:=t&c
+EndFor
+t:=phys\neg(t)
+ok:=1
+Try
+  vv:=expr(t)
+Else
+  ok:=0
+  ClrErr
+EndTry
+If ok=0 Then
+  Disp "Could not read V. Use *"
+  Disp "  between letters: A*x*y"
+  DelVar phza,phzb,phzc,phzd,phze,phzf,phzg,phzh,phzi,phzj,phzk,phzl,phzm,phzn,phzo,phzp,phzq,phzr,phzs,phzt,phzu,phzv,phzw,phzx,phzy,phzz
+  Return
+EndIf
+Disp "GIVEN:"
+phys\out("  V = "&phys\unz(string(vv)))
+ex:=−∂(vv,phzx)
+ey:=−∂(vv,phzy)
+ez:=−∂(vv,phzz)
+Disp "STEP 1: E = -gradient of V"
+Disp "  Ex = -dV/dx"
+Disp "  Ey = -dV/dy"
+Disp "  Ez = -dV/dz"
+Disp "STEP 2: Differentiate (CAS)"
+phys\out("  Ex = "&phys\unz(string(ex)))
+phys\out("  Ey = "&phys\unz(string(ey)))
+phys\out("  Ez = "&phys\unz(string(ez)))
+Disp "STEP 3: Where is E = 0?"
+eqs:=""
+vars:=""
+If string(ex)≠"0" Then
+  eqs:=string(ex)&"=0"
+EndIf
+If string(ey)≠"0" Then
+  If eqs≠"" Then
+    eqs:=eqs&" and "
+  EndIf
+  eqs:=eqs&string(ey)&"=0"
+EndIf
+If string(ez)≠"0" Then
+  If eqs≠"" Then
+    eqs:=eqs&" and "
+  EndIf
+  eqs:=eqs&string(ez)&"=0"
+EndIf
+If inString(t,"phzx")>0 Then
+  vars:="phzx"
+EndIf
+If inString(t,"phzy")>0 Then
+  If vars≠"" Then
+    vars:=vars&","
+  EndIf
+  vars:=vars&"phzy"
+EndIf
+If inString(t,"phzz")>0 Then
+  If vars≠"" Then
+    vars:=vars&","
+  EndIf
+  vars:=vars&"phzz"
+EndIf
+If eqs="" Then
+  Disp "  E = 0 everywhere"
+  Disp "  (V is constant)"
+ElseIf vars="" Then
+  Disp "  E is constant and not 0:"
+  Disp "  it is never zero"
+Else
+  Disp "  Solve nonzero parts = 0"
+  ok:=1
+  Try
+    sol:=expr("solve("&eqs&",{"&vars&"})")
+  Else
+    ok:=0
+    ClrErr
+  EndTry
+  If ok=0 Then
+    Disp "  CAS could not solve it."
+  Else
+    ss:=string(sol)
+    If ss="false" Then
+      Disp "  E is never zero"
+    Else
+      Disp "  E = 0 where:"
+      phys\out("  "&phys\unz(ss))
+      If inString(eqs,"phzx")=0 Then
+        Disp "  any x"
+      EndIf
+      If inString(eqs,"phzy")=0 Then
+        Disp "  any y"
+      EndIf
+      If inString(eqs,"phzz")=0 Then
+        Disp "  any z"
+      EndIf
+    EndIf
+  EndIf
+EndIf
+DelVar phza,phzb,phzc,phzd,phze,phzf,phzg,phzh,phzi,phzj,phzk,phzl,phzm,phzn,phzo,phzp,phzq,phzr,phzs,phzt,phzu,phzv,phzw,phzx,phzy,phzz
+EndPrgm
+
+Define LibPriv m238()=
+Prgm
+Local c,s2,ra,rb,vab,q,a,b,ef,r,kc,e0,lam,g,er
+kc:=8.99ᴇ9
+e0:=8.854ᴇ−12
+phys\hdr("23.8 Vab spheres/coax")
+Disp "1 concentric spheres"
+Disp "2 coaxial cylinders"
+phys\ask("1=spheres 2=cylinders",102)
+c:=physv
+If c=1 Then
+  phys\ask("Find: 1=q from Vab 2=Vab from q",102)
+  s2:=physv
+  phys\ask("Inner radius ra in m",1)
+  ra:=physv
+  phys\ask("Outer radius rb in m",1)
+  rb:=physv
+  If s2=1 Then
+    phys\ask("Vab = Va - Vb in V",0)
+    vab:=physv
+  Else
+    phys\ask("q on inner sphere in C",0)
+    q:=physv
+  EndIf
+Else
+  phys\ask("Inner wire radius a in m",1)
+  a:=physv
+  phys\ask("Outer cylinder radius b in m",1)
+  b:=physv
+  phys\ask("E at radius r, in V/m",0)
+  ef:=physv
+  phys\ask("That radius r in m",1)
+  r:=physv
+EndIf
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+If c=1 Then
+  Disp "  ra = "&phys\sn(ra)&" m"
+  Disp "  rb = "&phys\sn(rb)&" m"
+  If ra≥rb Then
+    Disp "Need ra < rb (inner sphere"
+    Disp "  inside the outer one)."
+    Return
+  EndIf
+  Disp "REASONING: only the inner"
+  Disp "  q makes the field between"
+  Disp "  Vab = kq(1/ra - 1/rb)"
+  g:=1/ra-1/rb
+  Disp "  (1/ra-1/rb) = "&phys\sf(g)
+  Disp "    (units 1/m)"
+  If s2=1 Then
+    Disp "  Vab = "&phys\sn(vab)&" V"
+    Disp "STEP: q = Vab/(k(1/ra-1/rb))"
+    phys\pk({"q = ("&phys\sn(vab)&")","/((8.99ᴇ9)","("&phys\sf(g)&"))"})
+    q:=vab/(kc*g)
+    Disp "RESULT: q = "&phys\sf(q)&" C"
+  Else
+    Disp "  q = "&phys\sn(q)&" C"
+    Disp "STEP: Vab = kq(1/ra-1/rb)"
+    phys\pk({"Vab = (8.99ᴇ9)","("&phys\sn(q)&")","("&phys\sf(g)&")"})
+    vab:=kc*q*g
+    Disp "RESULT: Vab = "&phys\sf(vab)&" V"
+  EndIf
+  If q>0 Then
+    Disp "  q > 0: inner sphere is at"
+    Disp "  the higher potential"
+  ElseIf q<0 Then
+    Disp "  q < 0: inner sphere is at"
+    Disp "  the lower potential"
+  EndIf
+Else
+  Disp "  a = "&phys\sn(a)&" m"
+  Disp "  b = "&phys\sn(b)&" m"
+  Disp "  E = "&phys\sn(ef)&" V/m"
+  Disp "  at r = "&phys\sn(r)&" m"
+  If a≥b or r<a or r>b Then
+    Disp "Need a < b and r between"
+    Disp "  a and b (E between them)."
+    Return
+  EndIf
+  Disp "REASONING: between them"
+  Disp "  E = λ/(2π ε0 r), so"
+  Disp "  λ/(2π ε0) = E*r"
+  er:=ef*r
+  Disp "STEP 1: E*r = "&phys\sf(er)&" V"
+  Disp "STEP 2: Vab = E r ln(b/a)"
+  phys\pk({"Vab = ("&phys\sf(er)&")","ln("&phys\sn(b)&"/"&phys\sn(a)&")"})
+  vab:=er*ln(b/a)
+  Disp "  Vab = "&phys\sf(vab)&" V"
+  lam:=2*π*e0*er
+  Disp "STEP 3: λ = 2π ε0 E r"
+  Disp "  λ = "&phys\sf(lam)&" C/m"
+  If vab>0 Then
+    Disp "  wire is at the higher V"
+  ElseIf vab<0 Then
+    Disp "  wire is at the lower V"
+  EndIf
+EndIf
+EndPrgm
+
+Define LibPriv m239()=
+Prgm
+Local q,rr,kc,dv
+kc:=8.99ᴇ9
+phys\hdr("23.9 Insulating sphere")
+phys\ask("Q (total) in C (E for x10^)",0)
+q:=physv
+phys\ask("Sphere radius R in m",1)
+rr:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  Q = "&phys\sn(q)&" C (uniform)"
+Disp "  R = "&phys\sn(rr)&" m"
+Disp "REASONING: inside, the"
+Disp "  field is E = kQr/R^3."
+Disp "  V(0)-V(R) = integral of"
+Disp "  E dr from 0 to R"
+Disp "STEP 1: V(0)-V(R) = kQ/(2R)"
+phys\pk({"= (8.99ᴇ9)("&phys\sn(q)&")","/(2("&phys\sn(rr)&"))"})
+dv:=kc*q/(2*rr)
+Disp "STEP 2: Result"
+Disp "  V(center) - V(surface)"
+Disp "    = "&phys\sf(dv)&" V"
+Disp "ALSO:"
+Disp "  V(surface) = kQ/R"
+Disp "    = "&phys\sf(kc*q/rr)&" V"
+Disp "  V(center) = 3kQ/(2R)"
+Disp "    = "&phys\sf(3*kc*q/(2*rr))&" V"
+If q>0 Then
+  Disp "  center is at HIGHER V"
+ElseIf q<0 Then
+  Disp "  center is at LOWER V"
+EndIf
+EndPrgm
+
+Define LibPriv m2310()=
+Prgm
+Local q1,x1,q2,x2,q3,kv,x3,lo,hi,kc,u12,u13,u23,a0,a1,a2,bp,xa,xb,j,aa,bb,xm,s1,s2,rts,i,rt,kl
+kc:=8.99ᴇ9
+phys\hdr("23.10 Where U = 0")
+Disp "q1, q2 fixed on the x-axis"
+Disp "q3 moves along the x-axis"
+phys\ask("q1 in C (E for x10^: 4E-9)",0)
+q1:=physv
+phys\ask("x1 in m",0)
+x1:=physv
+phys\ask("q2 in C",0)
+q2:=physv
+phys\ask("x2 in m",0)
+x2:=physv
+phys\ask("Movable charge q3 in C",0)
+q3:=physv
+phys\ask("Know q3 position now? 1=yes 0=no",201)
+kv:=physv
+If kv=1 Then
+  phys\ask("x3 (q3 now) in m",0)
+  x3:=physv
+EndIf
+phys\ask("Search from x = (m)",0)
+lo:=physv
+phys\ask("Search to x = (m)",0)
+hi:=physv
+If physok=0 Then
+  Return
+EndIf
+Disp "GIVEN:"
+Disp "  q1 = "&phys\sn(q1)&" C"
+Disp "    at x1 = "&phys\sn(x1)&" m"
+Disp "  q2 = "&phys\sn(q2)&" C"
+Disp "    at x2 = "&phys\sn(x2)&" m"
+Disp "  q3 = "&phys\sn(q3)&" C"
+If x1=x2 Then
+  Disp "q1 and q2 at the same x:"
+  Disp "  U12 infinite. Need x1≠x2."
+  Return
+EndIf
+If lo≥hi Then
+  Disp "Search start must be less"
+  Disp "  than the end."
+  Return
+EndIf
+u12:=kc*q1*q2/abs(x2-x1)
+If kv=1 Then
+  If x3=x1 or x3=x2 Then
+    Disp "q3 sits on a charge:"
+    Disp "  r = 0, U is infinite."
+    Return
+  EndIf
+  u13:=kc*q1*q3/abs(x3-x1)
+  u23:=kc*q2*q3/abs(x3-x2)
+  Disp "U WITH q3 AT x = "&phys\sn(x3)
+  Disp "  U12 = kq1q2/|x2-x1|"
+  Disp "    = "&phys\sf(u12)&" J"
+  Disp "  U13 = kq1q3/|x3-x1|"
+  Disp "    = "&phys\sf(u13)&" J"
+  Disp "  U23 = kq2q3/|x3-x2|"
+  Disp "    = "&phys\sf(u23)&" J"
+  Disp "  U = sum = "&phys\sf(u12+u13+u23)&" J"
+EndIf
+a0:=q1*q2/abs(x2-x1)
+a1:=q1*q3
+a2:=q2*q3
+Disp "SETUP: U(x) = 0"
+Disp "  k[q1q2/|x2-x1|"
+Disp "   + q1q3/|x-x1|"
+Disp "   + q2q3/|x-x2|] = 0"
+Disp "  (k cancels)"
+Disp "  q1q2/|x2-x1| = "&phys\sf(a0)
+Disp "  q1q3 = "&phys\sf(a1)
+Disp "  q2q3 = "&phys\sf(a2)
+If a1=0 and a2=0 Then
+  If a0=0 Then
+    Disp "  U = 0 for every x"
+  Else
+    Disp "  U does not depend on x"
+    Disp "  and is never 0"
+  EndIf
+  Return
+EndIf
+Disp "SOLVE: split at the charges;"
+Disp "  in each piece |x-xi| is"
+Disp "  +(x-xi) or -(x-xi). The"
+Disp "  CAS finds the zeros."
+xa:=min(x1,x2)
+xb:=max(x1,x2)
+bp:={lo}
+If xa>lo and xa<hi Then
+  bp:=augment(bp,{xa})
+EndIf
+If xb>lo and xb<hi Then
+  bp:=augment(bp,{xb})
+EndIf
+bp:=augment(bp,{hi})
+kl:={}
+DelVar phzx
+For j,1,dim(bp)-1
+  aa:=bp[j]
+  bb:=bp[j+1]
+  xm:=(aa+bb)/2
+  s1:=sign(xm-x1)
+  s2:=sign(xm-x2)
+  Disp "PIECE "&string(j)&":"
+  phys\pk({"x from "&phys\sn(aa)," to "&phys\sn(bb)})
+  rts:=zeros(a0+a1/(s1*(phzx-x1))+a2/(s2*(phzx-x2)),phzx)
+  If dim(rts)=0 Then
+    Disp "  no root in this piece"
+  EndIf
+  For i,1,dim(rts)
+    rt:=approx(rts[i])
+    If rt>aa and rt<bb Then
+      Disp "  x = "&phys\sf(rt)&" m: KEEP"
+      kl:=augment(kl,{rt})
+    Else
+      Disp "  x = "&phys\sf(rt)&" m: reject"
+      Disp "    (outside this piece)"
+    EndIf
+  EndFor
+EndFor
+DelVar phzx
+Disp "RESULT:"
+If dim(kl)=0 Then
+  Disp "  U is never 0 from"
+  phys\pk({"x = "&phys\sn(lo)," to "&phys\sn(hi)&" m"})
+Else
+  For i,1,dim(kl)
+    Disp "  U = 0 at x = "&phys\sf(kl[i])&" m"
+  EndFor
+EndIf
+EndPrgm
+
