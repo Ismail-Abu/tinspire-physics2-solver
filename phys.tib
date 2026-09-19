@@ -5,7 +5,8 @@ Local ch,t,a,nt,quit
 setMode({2,2,3,1,4,1,5,1})
 physok:=1
 Disp "PHYSICS SOLVER Y&F 21-23"
-Disp "Cancel a prompt = go back"
+Disp "Blank or Cancel = back/quit"
+Disp "Units: 2nC, 1cm; or 2E-9"
 quit:=0
 Loop
   Disp "CHAPTERS:"
@@ -175,13 +176,13 @@ While b<1
   b:=b*10
   p:=p-1
 EndWhile
-m:=round(a/10^(p-n+1),0)
+m:=round(sign(a)*b*10^(n-1),0)
 If abs(m)≥10^n Then
   p:=p+1
   m:=m/10
 EndIf
-r:=m*10^(p-n+1)
 If p≥−3 and p≤2 Then
+  r:=m*10^(p-n+1)
   d:=n-1-p
   If d<0 Then
     d:=0
@@ -191,7 +192,7 @@ If p≥−3 and p≤2 Then
     s:=left(s,dim(s)-1)
   EndIf
 Else
-  s:=format(r,"S"&string(n-1))
+  s:=format(a,"S"&string(n-1))
 EndIf
 If z=1 Then
   k:=inString(s,"ᴇ")
@@ -239,27 +240,26 @@ Define LibPriv neg(s)=
 Func
 Local i,c,pc,w
 w:=""
+pc:="("
 For i,1,dim(s)
   c:=mid(s,i,1)
-  If i=1 Then
-    pc:="("
-  Else
-    pc:=mid(s,i-1,1)
-  EndIf
-  If c="-" and inString("(,^*/ᴇ=",pc)>0 Then
+  If c="-" and inString("(,{[+-−^*/ᴇ=<>≤≥≠",pc)>0 Then
     c:="−"
   EndIf
-  If c="+" and pc="ᴇ" Then
+  If c="+" and inString("(,{[+-−^*/ᴇ=<>≤≥≠",pc)>0 Then
     c:=""
   EndIf
   w:=w&c
+  If c≠" " and c≠"" Then
+    pc:=c
+  EndIf
 EndFor
 Return w
 EndFunc
 
 Define LibPriv num(s)=
 Func
-Local t,i,c,n,l1,l2,body,mult,pc,nc,u,dg
+Local t,i,c,n,l1,l2,body,mult,dg
 dg:="0123456789."
 t:=""
 For i,1,dim(s)
@@ -317,6 +317,12 @@ If mult="" or mult="1" Then
 Else
   t:="("&body&")*"&mult
 EndIf
+Return phys\expo(t)
+EndFunc
+
+Define LibPriv expo(t)=
+Func
+Local u,n,i,c,pc,nc
 u:=""
 n:=dim(t)
 For i,1,n
@@ -324,7 +330,7 @@ For i,1,n
   If (c="E" or c="e") and i>1 and i<n Then
     pc:=mid(t,i-1,1)
     nc:=mid(t,i+1,1)
-    If inString(dg,pc)>0 and inString("0123456789+-−",nc)>0 Then
+    If inString("0123456789.",pc)>0 and inString("0123456789+-−",nc)>0 Then
       c:="ᴇ"
     EndIf
   EndIf
@@ -336,6 +342,7 @@ EndFunc
 Define LibPriv ask(pr,code)=
 Prgm
 Local s,t,v,k,nn,msg
+setMode({2,2,3,1,4,1,5,1})
 If getType(physok)="NONE" Then
   physok:=1
 EndIf
@@ -352,6 +359,11 @@ Loop
     Return
   EndIf
   t:=phys\num(s)
+  If t="" Then
+    physok:=0
+    physv:=0
+    Return
+  EndIf
   Try
     v:=approx(expr(t))
   Else
@@ -364,15 +376,15 @@ Loop
   EndIf
   msg:=""
   If code=1 and v≤0 Then
-    msg:="Must be > 0: sizes, masses, distances are positive"
+    msg:="Use a positive value for size, mass or distance."
   ElseIf code=2 and v<0 Then
-    msg:="Must be 0 or more: this cannot be negative"
+    msg:="Use zero or a positive value."
   ElseIf code=3 and v=0 Then
-    msg:="Must not be 0 (a zero value makes this undefined)"
+    msg:="Zero makes this calculation undefined."
   ElseIf code=4 and (v≤0 or v≥90) Then
-    msg:="Angle must be between 0 and 90 deg"
+    msg:="Use 0 < angle < 90 deg; 90 needs infinite force."
   ElseIf code=5 and (v<0 or v>90) Then
-    msg:="Angle must be 0 to 90 deg (from plane or normal)"
+    msg:="Angle from the plane or normal must be 0-90 deg."
   ElseIf code≥100 Then
     If code≥200 Then
       nn:=code-200
@@ -403,7 +415,7 @@ EndPrgm
 
 Define LibPriv hdr(s)=
 Prgm
-Disp "== "&s&" =="
+phys\out("== "&s&" ==")
 EndPrgm
 
 Define LibPriv pk(l)=
@@ -415,11 +427,11 @@ For i,2,dim(l)
   If dim(s)+dim(w)≤28 Then
     s:=s&w
   Else
-    Disp s
+    phys\out(s)
     s:="    "&w
   EndIf
 EndFor
-Disp s
+phys\out(s)
 EndPrgm
 
 Define LibPriv out(s)=
@@ -458,66 +470,76 @@ If physok=0 Then
   Return
 EndIf
 If c=1 Then
-  phys\ask("N (number of particles)",2)
+  phys\ask("Number of particles N",2)
   nn:=physv
-  phys\ask("Charge each, in e (1 or -1)",3)
+  phys\ask("Charge in e (-1 electron, +1 proton)",3)
   z:=physv
 ElseIf c=2 Then
-  phys\ask("n = particles per meter",1)
+  phys\ask("Particles per meter n (1/m)",1)
   dn:=physv
-  phys\ask("L (length) in m",1)
+  phys\ask("Length L (m)",1)
   lt:=physv
-  phys\ask("Charge each, in e (1 or -1)",3)
+  phys\ask("Charge in e (-1 electron, +1 proton)",3)
   z:=physv
 Else
-  phys\ask("Q in C (E for x10^: 2.5E-6)",3)
+  phys\ask("Total charge Q (C)",3)
   q:=physv
-  phys\ask("Charge each, in e (1 or -1)",3)
+  phys\ask("Charge in e (-1 electron, +1 proton)",3)
   z:=physv
 EndIf
 If physok=0 Then
   Return
 EndIf
 Disp "GIVEN:"
+phys\out("  z = "&phys\sn(z)&" in e")
 Disp "  e = 1.602ᴇ−19 C"
-Disp "  z = "&phys\sn(z)&" (charge in e)"
-If c=2 Then
-  Disp "  n = "&phys\sn(dn)&" per m"
-  Disp "  L = "&phys\sn(lt)&" m"
-  nn:=dn*lt
-  Disp "STEP 1: Count N"
-  Disp "  N = n*L"
-  phys\pk({"N = ("&phys\sn(dn)&")","("&phys\sn(lt)&")"})
-  Disp "  N = "&phys\sf(nn)
-  c:=1
-EndIf
 If c=1 Then
-  Disp "STEP: Total charge"
-  Disp "  Q = N*z*e"
-  phys\pk({"Q = ("&phys\sn(nn)&")","("&phys\sn(z)&")","(1.602ᴇ−19)"})
-  q:=nn*z*qe
-  Disp "RESULT:"
-  Disp "  Q = "&phys\sf(q)&" C"
-  If q>0 Then
-    Disp "  positive (z > 0)"
-  ElseIf q<0 Then
-    Disp "  negative (z < 0)"
-  EndIf
+  phys\out("  N = "&phys\sn(nn))
+ElseIf c=2 Then
+  phys\out("  n = "&phys\sn(dn)&" per m")
+  phys\out("  L = "&phys\sn(lt)&" m")
+  nn:=dn*lt
 Else
-  Disp "  Q = "&phys\sn(q)&" C"
-  Disp "STEP 1: Formula"
-  Disp "  N = Q/(z*e)"
-  Disp "STEP 2: Plug in"
-  phys\pk({"N = ("&phys\sn(q)&")","/(("&phys\sn(z)&")","(1.602ᴇ−19))"})
-  nn:=q/(z*qe)
-  If nn<0 Then
-    Disp "Signs of Q and z differ:"
-    Disp "  a count can't be < 0,"
-    Disp "  so use |N|."
-    nn:=abs(nn)
-  EndIf
-  Disp "STEP 3: Result"
-  Disp "  N = "&phys\sf(nn)&" particles"
+  phys\out("  Q = "&phys\sn(q)&" C")
+EndIf
+Disp "STEP 1: Formula"
+If c=2 Then
+  Disp "  N = n*L"
+EndIf
+If c=1 or c=2 Then
+  Disp "  Q = N*z*e"
+Else
+  Disp "  N = |Q/(z*e)|"
+EndIf
+Disp "STEP 2: Plug in"
+If c=2 Then
+  phys\pk({"N = ("&phys\sn(dn)&")","*("&phys\sn(lt)&")"})
+EndIf
+If c=1 or c=2 Then
+  phys\pk({"Q = ("&phys\sn(nn)&")","*("&phys\sn(z)&")","*(1.602ᴇ−19)"})
+  q:=nn*z*qe
+Else
+  phys\pk({"N = |("&phys\sn(q)&")","/(("&phys\sn(z)&")","*(1.602ᴇ−19))|"})
+  nn:=abs(q/(z*qe))
+EndIf
+Disp "STEP 3: Answer"
+If c=2 or c=3 Then
+  phys\out("  N = "&phys\sf(nn))
+  Disp "  (number of particles)"
+EndIf
+If c=1 or c=2 Then
+  phys\out("  Q = "&phys\sf(q)&" C")
+EndIf
+Disp "DIRECTION:"
+If c=3 and q*z<0 Then
+  Disp "  Q and z have unlike signs."
+  Disp "  Count uses |Q/(z*e)|."
+ElseIf q>0 Then
+  Disp "  Positive charge."
+ElseIf q<0 Then
+  Disp "  Negative charge."
+Else
+  Disp "  No particles: Q = 0."
 EndIf
 EndPrgm
 
@@ -526,26 +548,26 @@ Prgm
 Local q1,q2,r,f,kc
 kc:=8.99ᴇ9
 phys\hdr("21.2 Force, 2 charges")
-phys\ask("q1 in C (E for x10^: 2.5E-6)",0)
+phys\ask("Charge q1 (C)",0)
 q1:=physv
-phys\ask("q2 in C",0)
+phys\ask("Charge q2 (C)",0)
 q2:=physv
-phys\ask("r (distance) in m",1)
+phys\ask("Separation r (m)",1)
 r:=physv
 If physok=0 Then
   Return
 EndIf
 Disp "GIVEN:"
-Disp "  q1 = "&phys\sn(q1)&" C"
-Disp "  q2 = "&phys\sn(q2)&" C"
-Disp "  r = "&phys\sn(r)&" m"
+phys\out("  q1 = "&phys\sn(q1)&" C")
+phys\out("  q2 = "&phys\sn(q2)&" C")
+phys\out("  r = "&phys\sn(r)&" m")
 Disp "STEP 1: Formula"
 Disp "  F = k|q1*q2|/r^2"
 Disp "STEP 2: Plug in"
 phys\pk({"F = (8.99ᴇ9)","|("&phys\sn(q1)&")","("&phys\sn(q2)&")|","/("&phys\sn(r)&")^2"})
 f:=kc*abs(q1*q2)/r^2
-Disp "STEP 3: Result"
-Disp "  F = "&phys\sf(f)&" N"
+Disp "STEP 3: Answer"
+phys\out("  F = "&phys\sf(f)&" N")
 If q1*q2>0 Then
   Disp "DIRECTION: repulsive"
   Disp "  (same signs push apart)"
@@ -553,16 +575,17 @@ ElseIf q1*q2<0 Then
   Disp "DIRECTION: attractive"
   Disp "  (opposite signs attract)"
 Else
-  Disp "No force: a charge is 0"
+  Disp "DIRECTION: none"
+  Disp "  A zero charge feels no F."
 EndIf
 EndPrgm
 
 Define LibPriv m213()=
 Prgm
-Local n,i,si,ql,xl,q0,x0,kc,r,f,w,fs,fnet,tot
+Local n,i,si,ql,xl,q0,x0,kc,r,f,w,fs,fnet
 kc:=8.99ᴇ9
 phys\hdr("21.3 Net force 1D")
-phys\ask("Number of source charges 1-3",103)
+phys\ask("Number of source charges (1-3)",103)
 n:=physv
 If physok=0 Then
   Return
@@ -571,14 +594,14 @@ ql:=newList(n)
 xl:=newList(n)
 For i,1,n
   si:=string(i)
-  phys\ask("q"&si&" in C (E for x10^: 4E-9)",0)
+  phys\ask("Charge q"&si&" (C)",0)
   ql[i]:=physv
-  phys\ask("x"&si&" (position) in m",0)
+  phys\ask("Position x"&si&" (m)",0)
   xl[i]:=physv
 EndFor
-phys\ask("Target charge q0 in C",0)
+phys\ask("Target charge q0 (C)",0)
 q0:=physv
-phys\ask("Target position x0 in m",0)
+phys\ask("Target position x0 (m)",0)
 x0:=physv
 If physok=0 Then
   Return
@@ -586,14 +609,14 @@ EndIf
 Disp "GIVEN:"
 For i,1,n
   si:=string(i)
-  Disp "  q"&si&" = "&phys\sn(ql[i])&" C"
-  Disp "    at x"&si&" = "&phys\sn(xl[i])&" m"
+  phys\out("  q"&si&" = "&phys\sn(ql[i])&" C")
+  phys\out("    at x"&si&" = "&phys\sn(xl[i])&" m")
 EndFor
-Disp "  target q0 = "&phys\sn(q0)&" C"
-Disp "    at x0 = "&phys\sn(x0)&" m"
+phys\out("  target q0 = "&phys\sn(q0)&" C")
+phys\out("    at x0 = "&phys\sn(x0)&" m")
 For i,1,n
   If xl[i]=x0 Then
-    Disp "q"&string(i)&" is AT the target:"
+    phys\out("q"&string(i)&" is AT the target:")
     Disp "  r = 0, force undefined."
     Disp "  Use different positions."
     Return
@@ -602,49 +625,42 @@ EndFor
 Disp "STEP 1: Formula"
 Disp "  Fi = k|qi*q0|/ri^2"
 Disp "  ri = |x0 - xi|"
-Disp "  like signs: push q0 away"
-Disp "  unlike: pull q0 toward"
-Disp "STEP 2: Each force on q0"
+Disp "  Like signs push away;"
+Disp "  unlike signs pull toward."
+Disp "STEP 2: Plug in"
 fnet:=0
-tot:=0
 For i,1,n
   si:=string(i)
   r:=abs(x0-xl[i])
   f:=kc*abs(ql[i]*q0)/r^2
-  tot:=tot+f
-  Disp "q"&si&": r = "&phys\sn(r)&" m"
+  phys\out("q"&si&": r = "&phys\sn(r)&" m")
   phys\pk({"F"&si&" = (8.99ᴇ9)","|("&phys\sn(ql[i])&")","("&phys\sn(q0)&")|","/("&phys\sn(r)&")^2"})
-  Disp "  F"&si&" = "&phys\sf(f)&" N"
+  phys\out("  F"&si&" = "&phys\sf(f)&" N")
   If ql[i]*q0>0 Then
     w:=sign(x0-xl[i])
-    Disp "  repel: away from q"&si
+    phys\out("  repel: away from q"&si)
   ElseIf ql[i]*q0<0 Then
     w:=sign(xl[i]-x0)
-    Disp "  attract: toward q"&si
+    phys\out("  attract: toward q"&si)
   Else
     w:=0
     Disp "  zero charge: no force"
   EndIf
   fs:=w*f
   If w>0 Then
-    Disp "  F"&si&"x = +"&phys\sf(f)&" N (+x)"
+    phys\out("  F"&si&"x = +"&phys\sf(f)&" N (+x)")
   ElseIf w<0 Then
-    Disp "  F"&si&"x = "&phys\sf(fs)&" N (−x)"
+    phys\out("  F"&si&"x = "&phys\sf(fs)&" N (−x)")
   EndIf
   fnet:=fnet+fs
 EndFor
-If abs(fnet)<1ᴇ−12*tot Then
-  fnet:=0
-EndIf
-Disp "STEP 3: Add signed forces"
+Disp "STEP 3: Answer"
 Disp "  Fnet = sum of Fix"
-Disp "  Fnet = "&phys\sf(fnet)&" N"
+phys\out("  Fnet = "&phys\sf(fnet)&" N")
 If fnet>0 Then
   Disp "DIRECTION: +x"
-  Disp "  magnitude "&phys\sf(fnet)&" N"
 ElseIf fnet<0 Then
   Disp "DIRECTION: −x"
-  Disp "  magnitude "&phys\sf(abs(fnet))&" N"
 Else
   Disp "DIRECTION: none (net 0)"
 EndIf
@@ -652,11 +668,11 @@ EndPrgm
 
 Define LibPriv m214()=
 Prgm
-Local n,i,si,ql,xl,yl,q0,x0,y0,kc,dx,dy,r,f,s,ux,uy,fx,fy,sx,sy,fm,ang,std,tot,tol,w1,w2
+Local n,i,si,ql,xl,yl,q0,x0,y0,kc,dx,dy,r,f,s,ux,uy,fx,fy,sx,sy,fm,ang,std,w1,w2
 kc:=8.99ᴇ9
-setMode({2,2})
+setMode({2,2,3,1,4,1,5,1})
 phys\hdr("21.4 Net force 2D")
-phys\ask("Number of source charges 1-3",103)
+phys\ask("Number of source charges (1-3)",103)
 n:=physv
 If physok=0 Then
   Return
@@ -666,18 +682,18 @@ xl:=newList(n)
 yl:=newList(n)
 For i,1,n
   si:=string(i)
-  phys\ask("q"&si&" in C (E for x10^: 2E-9)",0)
+  phys\ask("Charge q"&si&" (C)",0)
   ql[i]:=physv
-  phys\ask("x"&si&" in m",0)
+  phys\ask("Position x"&si&" (m)",0)
   xl[i]:=physv
-  phys\ask("y"&si&" in m",0)
+  phys\ask("Position y"&si&" (m)",0)
   yl[i]:=physv
 EndFor
-phys\ask("Target charge q0 in C",0)
+phys\ask("Target charge q0 (C)",0)
 q0:=physv
-phys\ask("Target x0 in m",0)
+phys\ask("Target x0 (m)",0)
 x0:=physv
-phys\ask("Target y0 in m",0)
+phys\ask("Target y0 (m)",0)
 y0:=physv
 If physok=0 Then
   Return
@@ -690,68 +706,57 @@ EndFor
 phys\pk({"q0 = "&phys\sn(q0)&" C"," at ("&phys\sn(x0)&",",phys\sn(y0)&")"})
 For i,1,n
   If xl[i]=x0 and yl[i]=y0 Then
-    Disp "q"&string(i)&" is AT the target:"
+    phys\out("q"&string(i)&" is AT the target:")
     Disp "  r = 0, force undefined."
     Return
   EndIf
 EndFor
-Disp "STEP 1: Formulas"
+Disp "STEP 1: Formula"
 Disp "  dx = x0-xi, dy = y0-yi"
 Disp "  r = √(dx^2+dy^2)"
 Disp "  F = k|qi*q0|/r^2"
-Disp "  repel: along (dx,dy)/r"
-Disp "  attract: opposite way"
-Disp "STEP 2: Each source"
+Disp "  Fx = k*qi*q0*dx/r^3"
+Disp "  Fy = k*qi*q0*dy/r^3"
+Disp "STEP 2: Plug in"
 sx:=0
 sy:=0
-tot:=0
 For i,1,n
   si:=string(i)
   dx:=x0-xl[i]
   dy:=y0-yl[i]
   r:=√(dx^2+dy^2)
   f:=kc*abs(ql[i]*q0)/r^2
-  tot:=tot+f
-  Disp "SOURCE q"&si&":"
-  Disp "  dx = "&phys\sn(dx)&" m"
-  Disp "  dy = "&phys\sn(dy)&" m"
-  Disp "  r = "&phys\sn(r)&" m"
+  phys\out("SOURCE q"&si&":")
+  phys\out("  dx = "&phys\sn(dx)&" m")
+  phys\out("  dy = "&phys\sn(dy)&" m")
+  phys\out("  r = "&phys\sn(r)&" m")
   phys\pk({"F = (8.99ᴇ9)","|("&phys\sn(ql[i])&")","("&phys\sn(q0)&")|","/("&phys\sn(r)&")^2"})
-  Disp "  F = "&phys\sf(f)&" N"
+  phys\out("  F = "&phys\sf(f)&" N")
   ux:=dx/r
   uy:=dy/r
   If ql[i]*q0>0 Then
     s:=1
-    Disp "  repel: away from q"&si
+    phys\out("  repel: away from q"&si)
   ElseIf ql[i]*q0<0 Then
     s:=−1
-    Disp "  attract: toward q"&si
+    phys\out("  attract: toward q"&si)
   Else
     s:=0
     Disp "  zero charge: no force"
   EndIf
-  Disp "  unit vector away from q"&si
-  phys\pk({"("&phys\sn(ux)&", ",phys\sn(uy)&")"})
   fx:=s*f*ux
   fy:=s*f*uy
-  Disp "  Fx = "&phys\sf(fx)&" N"
-  Disp "  Fy = "&phys\sf(fy)&" N"
+  phys\out("  Fx = "&phys\sf(fx)&" N")
+  phys\out("  Fy = "&phys\sf(fy)&" N")
   sx:=sx+fx
   sy:=sy+fy
 EndFor
-tol:=1ᴇ−12*tot
-If abs(sx)<tol Then
-  sx:=0
-EndIf
-If abs(sy)<tol Then
-  sy:=0
-EndIf
 fm:=√(sx^2+sy^2)
-Disp "STEP 3: Add components"
-Disp "  Fx = "&phys\sf(sx)&" N"
-Disp "  Fy = "&phys\sf(sy)&" N"
+Disp "STEP 3: Answer"
+phys\out("  Fx = "&phys\sf(sx)&" N")
+phys\out("  Fy = "&phys\sf(sy)&" N")
 Disp "  |F| = √(Fx^2+Fy^2)"
-Disp "  |F| = "&phys\sf(fm)&" N"
+phys\out("  |F| = "&phys\sf(fm)&" N")
 Disp "DIRECTION:"
 If fm=0 Then
   Disp "  none (net force is 0)"
@@ -780,7 +785,7 @@ Else
   Else
     w2:="−x"
   EndIf
-  Disp "  "&phys\sf(ang)&"° "&w1&" "&w2&" axis"
+  phys\out("  "&phys\sf(ang)&"° "&w1&" "&w2&" axis")
   If sx>0 and sy>0 Then
     std:=ang
   ElseIf sx<0 and sy>0 Then
@@ -790,7 +795,7 @@ Else
   Else
     std:=360-ang
   EndIf
-  Disp "  = "&phys\sf(std)&"° CCW from +x"
+  phys\out("  = "&phys\sf(std)&"° CCW from +x")
 EndIf
 EndPrgm
 
@@ -799,32 +804,40 @@ Prgm
 Local q1,x1,q2,x2,kc,a1,a2,s1,s2,same,xl,xr,nl,nr,al,ar,x,e1,e2
 kc:=8.99ᴇ9
 phys\hdr("21.5 Zero-force point")
-phys\ask("q1 in C (E for x10^: 2.5E-6)",0)
+phys\ask("Charge q1 (C)",0)
 q1:=physv
-phys\ask("x1 (position) in m",0)
+phys\ask("Position x1 (m)",0)
 x1:=physv
-phys\ask("q2 in C",0)
+phys\ask("Charge q2 (C)",0)
 q2:=physv
-phys\ask("x2 (position) in m",0)
+phys\ask("Position x2 (m)",0)
 x2:=physv
 If physok=0 Then
   Return
 EndIf
 Disp "GIVEN:"
-Disp "  q1 = "&phys\sn(q1)&" C"
-Disp "    at x1 = "&phys\sn(x1)&" m"
-Disp "  q2 = "&phys\sn(q2)&" C"
-Disp "    at x2 = "&phys\sn(x2)&" m"
+phys\out("  q1 = "&phys\sn(q1)&" C")
+phys\out("  x1 = "&phys\sn(x1)&" m")
+phys\out("  q2 = "&phys\sn(q2)&" C")
+phys\out("  x2 = "&phys\sn(x2)&" m")
+If q1=0 and q2=0 Then
+  Disp "Both charges are zero."
+  Disp "DIRECTION: no force anywhere"
+  Return
+EndIf
 If x1=x2 Then
-  Disp "Same position: they act as"
-  Disp "  one charge. Need x1 ≠ x2."
+  If q1+q2=0 Then
+    Disp "Charges cancel at one point."
+    Disp "Field is zero elsewhere."
+  Else
+    Disp "Same point: use q1+q2."
+    Disp "  Need x1 ≠ x2 to balance."
+  EndIf
   Return
 EndIf
 If q1=0 or q2=0 Then
-  Disp "A charge is 0: only ONE"
-  Disp "  force acts on a test q,"
-  Disp "  so the net force is never"
-  Disp "  0 (only infinitely far)."
+  Disp "Only one charge acts."
+  Disp "No finite zero-force point."
   Return
 EndIf
 a1:=abs(q1)
@@ -847,75 +860,68 @@ EndIf
 same:=0
 If q1*q2>0 Then
   same:=1
-  Disp "Signs: SAME"
-Else
-  Disp "Signs: OPPOSITE"
 EndIf
-Disp "REGION CHECK (test charge)"
-Disp "LEFT, x < "&phys\sn(xl)&":"
+Disp "REGION CHECK:"
+phys\out("LEFT, x < "&phys\sn(xl)&":")
 If same=1 Then
-  Disp "  forces point same way:"
-  Disp "  cannot cancel -> no"
+  Disp "  Same direction: no."
 Else
-  Disp "  forces opposite: yes"
+  Disp "  Opposite directions."
   If al<ar Then
-    Disp "  closer "&nl&" is smaller:"
+    phys\out("  Closer "&nl&" is smaller:")
     Disp "  can balance -> YES"
   Else
-    Disp "  closer "&nl&" not smaller:"
-    Disp "  it always wins -> no"
+    phys\out("  Closer "&nl&" is not smaller:")
+    Disp "  no balance."
   EndIf
 EndIf
 Disp "BETWEEN the charges:"
 If same=1 Then
-  Disp "  forces opposite: YES"
+  Disp "  Opposite directions: YES."
 Else
-  Disp "  forces point same way:"
-  Disp "  cannot cancel -> no"
+  Disp "  Same direction: no."
 EndIf
-Disp "RIGHT, x > "&phys\sn(xr)&":"
+phys\out("RIGHT, x > "&phys\sn(xr)&":")
 If same=1 Then
-  Disp "  forces point same way:"
-  Disp "  cannot cancel -> no"
+  Disp "  Same direction: no."
 Else
-  Disp "  forces opposite: yes"
+  Disp "  Opposite directions."
   If ar<al Then
-    Disp "  closer "&nr&" is smaller:"
+    phys\out("  Closer "&nr&" is smaller:")
     Disp "  can balance -> YES"
   Else
-    Disp "  closer "&nr&" not smaller:"
-    Disp "  it always wins -> no"
+    phys\out("  Closer "&nr&" is not smaller:")
+    Disp "  no balance."
   EndIf
 EndIf
 If same=0 and a1=a2 Then
-  Disp "Equal size, opposite sign:"
-  Disp "  outside, the closer one"
-  Disp "  always wins. NO finite"
-  Disp "  zero-force point exists."
+  Disp "NO finite zero-force point."
+  Disp "Outside: nearer charge wins."
+  Disp "Between: same direction."
   Return
 EndIf
-Disp "STEP 1: Set forces equal"
-Disp "  k|q1|/(x-x1)^2"
-Disp "    = k|q2|/(x-x2)^2"
+Disp "STEP 1: Formula"
 Disp "  √|q1|*|x-x2|"
 Disp "    = √|q2|*|x-x1|"
+Disp "  s1=√|q1|, s2=√|q2|"
 s1:=√(a1)
 s2:=√(a2)
+Disp "  x = x1+(x2-x1)*s1"
 If same=1 Then
-  Disp "STEP 2: Between, solve"
-  Disp "  x = (x1√|q2|+x2√|q1|)"
-  Disp "      /(√|q1|+√|q2|)"
-  phys\pk({"x = (("&phys\sn(x1)&")","("&phys\sn(s2)&")","+("&phys\sn(x2)&")","("&phys\sn(s1)&"))","/("&phys\sn(s1)&"+"&phys\sn(s2)&")"})
-  x:=(x1*s2+x2*s1)/(s1+s2)
+  Disp "      /(s1+s2)"
 Else
-  Disp "STEP 2: Outside, solve"
-  Disp "  x = (x2√|q1|-x1√|q2|)"
-  Disp "      /(√|q1|-√|q2|)"
-  phys\pk({"x = (("&phys\sn(x2)&")","("&phys\sn(s1)&")","-("&phys\sn(x1)&")","("&phys\sn(s2)&"))","/("&phys\sn(s1)&"-"&phys\sn(s2)&")"})
-  x:=(x2*s1-x1*s2)/(s1-s2)
+  Disp "      *(s1+s2)/(|q1|-|q2|)"
 EndIf
-Disp "STEP 3: Result"
-Disp "  x = "&phys\sf(x)&" m"
+Disp "STEP 2: Plug in"
+If same=1 Then
+  phys\pk({"x = ("&phys\sn(x1)&")","+("&phys\sn(x2-x1)&")","*("&phys\sn(s1)&")","/("&phys\sn(s1+s2)&")"})
+  x:=x1+(x2-x1)*s1/(s1+s2)
+Else
+  phys\pk({"x = ("&phys\sn(x1)&")","+("&phys\sn(x2-x1)&")","*("&phys\sn(s1)&")","*("&phys\sn(s1+s2)&")","/("&phys\sn(a1-a2)&")"})
+  x:=x1+(x2-x1)*s1*(s1+s2)/(a1-a2)
+EndIf
+Disp "STEP 3: Answer"
+phys\out("  x = "&phys\sf(x)&" m")
 If x<xl Then
   Disp "  (left of both charges)"
 ElseIf x>xr Then
@@ -923,40 +929,40 @@ ElseIf x>xr Then
 Else
   Disp "  (between the charges)"
 EndIf
-Disp "  nearer the smaller |q|"
 If x=x1 or x=x2 Then
-  Disp "  (too close to a charge"
-  Disp "  to check numerically)"
+  Disp "Too close to a source to"
+  Disp "resolve with these numbers."
   Return
 EndIf
 e1:=kc*a1/(x-x1)^2
 e2:=kc*a2/(x-x2)^2
-Disp "CHECK (force per coulomb):"
-Disp "  from q1: "&phys\sf(e1)&" N/C"
-Disp "  from q2: "&phys\sf(e2)&" N/C"
-Disp "  equal + opposite: net 0"
+Disp "  Check: field magnitudes"
+phys\out("  q1: "&phys\sf(e1)&" N/C")
+phys\out("  q2: "&phys\sf(e2)&" N/C")
+Disp "DIRECTION:"
+Disp "  Equal and opposite fields."
+Disp "  Net force is zero."
 EndPrgm
 
 Define LibPriv m216()=
 Prgm
-Local c,m,lt,th,q,kc,gg,mg,tt,fe,d,ratio
+Local c,m,lt,th,q,kc,gg,mg,tt,fe,d,ratio,tv,tscl,tlo,thi,tmid,rv,want,ct,j,okth
 kc:=8.99ᴇ9
 gg:=9.8
-setMode({2,2})
+setMode({2,2,3,1,4,1,5,1})
 phys\hdr("21.6 Hanging spheres")
-Disp "Equal masses m, equal q,"
-Disp "threads L at angle th"
-phys\ask("1=find q (know th) 2=find th",102)
+Disp "Equal masses, equal charges."
+phys\ask("1=find charge 2=find angle",102)
 c:=physv
-phys\ask("m (each sphere) in kg",1)
+phys\ask("Mass of each sphere (kg)",1)
 m:=physv
-phys\ask("L (thread length) in m",1)
+phys\ask("Length of each thread (m)",1)
 lt:=physv
 If c=1 Then
-  phys\ask("th from vertical, deg (0-90)",4)
+  phys\ask("Angle from vertical (deg)",4)
   th:=physv
 Else
-  phys\ask("q (each sphere) in C",3)
+  phys\ask("Charge on each sphere (C)",3)
   q:=physv
 EndIf
 If physok=0 Then
@@ -964,90 +970,138 @@ If physok=0 Then
 EndIf
 mg:=m*gg
 Disp "GIVEN:"
-Disp "  m = "&phys\sn(m)&" kg"
-Disp "  L = "&phys\sn(lt)&" m"
+phys\out("  m = "&phys\sn(m)&" kg")
+phys\out("  L = "&phys\sn(lt)&" m")
 Disp "  g = 9.8 m/s^2"
-Disp "FORCES on one sphere:"
-Disp "  T cos(th) = mg (vertical)"
-Disp "  T sin(th) = Fe (horiz.)"
-Disp "  => Fe = mg tan(th)"
-Disp "  separation d = 2L sin(th)"
 If c=1 Then
-  Disp "  th = "&phys\sn(th)&"°"
+  phys\out("  th = "&phys\sn(th)&"°")
+Else
+  phys\out("  q = "&phys\sn(q)&" C")
+EndIf
+Disp "STEP 1: Formula"
+Disp "  T cos(th) = mg"
+Disp "  T sin(th) = Fe"
+Disp "  T = mg/cos(th)"
+Disp "  Fe = mg tan(th)"
+Disp "  d = 2L sin(th)"
+If c=1 Then
+  Disp "  |q| = √(Fe*d^2/k)"
+Else
+  Disp "  sin^2(th)*tan(th)"
+  Disp "    = kq^2/(4L^2*mg)"
+EndIf
+Disp "STEP 2: Plug in"
+If c=1 Then
   tt:=mg/cos(th°)
   fe:=mg*tan(th°)
   d:=2*lt*sin(th°)
   q:=√(fe*d^2/kc)
-  Disp "STEP 1: Tension"
-  Disp "  T = mg/cos(th)"
-  phys\pk({"T = ("&phys\sn(m)&")(9.8)","/cos("&phys\sn(th)&"°)"})
-  Disp "  T = "&phys\sf(tt)&" N"
-  Disp "STEP 2: Electric force"
-  Disp "  Fe = mg tan(th)"
-  phys\pk({"Fe = ("&phys\sn(m)&")(9.8)","tan("&phys\sn(th)&"°)"})
-  Disp "  Fe = "&phys\sf(fe)&" N"
-  Disp "STEP 3: Separation"
-  Disp "  d = 2L sin(th)"
-  phys\pk({"d = 2("&phys\sn(lt)&")","sin("&phys\sn(th)&"°)"})
-  Disp "  d = "&phys\sf(d)&" m"
-  Disp "STEP 4: Charge"
-  Disp "  Fe = kq^2/d^2"
-  Disp "  q = √(Fe*d^2/k)"
-  phys\pk({"q = √(("&phys\sn(fe)&")","("&phys\sn(d)&")^2","/8.99ᴇ9)"})
-  Disp "  q = "&phys\sf(q)&" C"
-  Disp "SIGN: both have the same"
-  Disp "  sign (they repel); + or"
-  Disp "  - cannot be told apart."
+  phys\pk({"T = ("&phys\sn(m)&")*(9.8)","/cos("&phys\sn(th)&"°)"})
+  phys\pk({"Fe = ("&phys\sn(m)&")*(9.8)","*tan("&phys\sn(th)&"°)"})
+  phys\pk({"d = 2*("&phys\sn(lt)&")","*sin("&phys\sn(th)&"°)"})
+  phys\pk({"|q| = √(("&phys\sn(fe)&")","*("&phys\sn(d)&")^2","/8.99ᴇ9)"})
 Else
-  Disp "  q = "&phys\sn(q)&" C"
-  Disp "STEP 1: Equation"
-  Disp "  mg tan(th) = kq^2/d^2"
-  Disp "  with d = 2L sin(th):"
-  Disp "  sin^2(th)*tan(th)"
-  Disp "    = kq^2/(4L^2*mg)"
   ratio:=kc*q^2/(4*lt^2*mg)
-  Disp "STEP 2: Right side"
-  phys\pk({"= (8.99ᴇ9)("&phys\sn(q)&")^2","/(4("&phys\sn(lt)&")^2","("&phys\sn(m)&")(9.8))"})
-  Disp "  = "&phys\sf(ratio)
+  phys\pk({"= (8.99ᴇ9)*("&phys\sn(q)&")^2","/(4*("&phys\sn(lt)&")^2","*("&phys\sn(m)&")*(9.8))"})
+  phys\out("  right side = "&phys\sf(ratio))
   DelVar phzt
-  th:=nSolve(sin(phzt°)^2*tan(phzt°)=ratio,phzt,0,89.9999)
+  Try
+    th:=approx(nSolve(sin(phzt°)^2*tan(phzt°)=ratio,phzt,0,89.9999))
+  Else
+    th:="none"
+    ClrErr
+  EndTry
   DelVar phzt
-  If getType(th)≠"NUM" Then
-    Disp "No angle found (0-90)."
-    Return
+  okth:=0
+  If getType(th)="NUM" Then
+    If th>0 and th<90 Then
+      tv:=tan(th°)
+      If tv≥1 Then
+        rv:=tv/(1+(1/tv)^2)
+      Else
+        rv:=tv^3/(1+tv^2)
+      EndIf
+      If abs(rv/ratio-1)<1ᴇ−8 Then
+        okth:=1
+      EndIf
+    EndIf
   EndIf
-  Disp "STEP 3: Solve (nSolve)"
-  Disp "  0 < th < 90 deg"
-  Disp "  th = "&phys\sf(th)&"°"
-  d:=2*lt*sin(th°)
-  fe:=mg*tan(th°)
-  tt:=mg/cos(th°)
-  Disp "STEP 4: At that angle"
-  Disp "  d = 2L sin(th)"
-  Disp "    = "&phys\sf(d)&" m"
-  Disp "  Fe = mg tan(th)"
-  Disp "    = "&phys\sf(fe)&" N"
-  Disp "  T = mg/cos(th)"
-  Disp "    = "&phys\sf(tt)&" N"
+  If okth=0 Then
+    ©t=tan(th); t^3/(1+t^2)=ratio, monotone for t>0.
+    tscl:=max(ratio,ratio^(1/3))
+    tlo:=1
+    thi:=2
+    If tscl≥1 Then
+      want:=ratio/tscl
+    Else
+      want:=ratio/tscl^3
+    EndIf
+    For j,1,60
+      tmid:=(tlo+thi)/2
+      If tscl≥1 Then
+        rv:=tmid/(1+(1/tscl/tmid)^2)
+      Else
+        rv:=tmid^3/(1+(tscl*tmid)^2)
+      EndIf
+      If rv>want Then
+        thi:=tmid
+      Else
+        tlo:=tmid
+      EndIf
+    EndFor
+    tv:=tscl*(tlo+thi)/2
+    th:=approx(tan⁻¹(tv))
+  EndIf
+  fe:=mg*tv
+  If tv≥1 Then
+    ct:=√(1+(1/tv)^2)
+    d:=2*lt/ct
+    tt:=fe*ct
+  Else
+    ct:=√(1+tv^2)
+    d:=2*lt*tv/ct
+    tt:=mg*ct
+  EndIf
+EndIf
+Disp "STEP 3: Answer"
+If c=1 Then
+  phys\out("  q = "&phys\sf(q)&" C")
+Else
+  If th≥89.95 Then
+    Disp "  th = 90.0° (rounded)"
+    Disp "  Actual angle is below 90°."
+  Else
+    phys\out("  th = "&phys\sf(th)&"°")
+  EndIf
+EndIf
+phys\out("  T = "&phys\sf(tt)&" N")
+phys\out("  Fe = "&phys\sf(fe)&" N")
+phys\out("  d = "&phys\sf(d)&" m")
+Disp "DIRECTION:"
+Disp "  Same signs repel."
+If c=1 Then
+  Disp "  q is size; + or - unknown."
+Else
+  Disp "  Force pushes them apart."
 EndIf
 EndPrgm
 
 Define LibPriv m221()=
 Prgm
 Local ef,c,a,lt,wd,rf,ang,an,ap,phi
-setMode({2,2})
+setMode({2,2,3,1,4,1,5,1})
 phys\hdr("22.1 Flux, flat area")
-phys\ask("E (field) in N/C",2)
+phys\ask("Field E in N/C",2)
 ef:=physv
 phys\ask("Area: 1=enter A, 2=L x W",102)
 c:=physv
 If c=1 Then
-  phys\ask("A (area) in m^2",1)
+  phys\ask("Area A in m^2",1)
   a:=physv
 Else
-  phys\ask("L (length) in m",1)
+  phys\ask("Length L in m",1)
   lt:=physv
-  phys\ask("W (width) in m",1)
+  phys\ask("Width W in m",1)
   wd:=physv
 EndIf
 phys\ask("Angle from: 1=PLANE 2=NORMAL",102)
@@ -1058,88 +1112,90 @@ If physok=0 Then
   Return
 EndIf
 Disp "GIVEN:"
-Disp "  E = "&phys\sn(ef)&" N/C"
+phys\out("  E = "&phys\sn(ef)&" N/C")
 If c=2 Then
   a:=lt*wd
-  Disp "  L = "&phys\sn(lt)&" m"
-  Disp "  W = "&phys\sn(wd)&" m"
-  Disp "  A = L*W = "&phys\sn(a)&" m^2"
+  phys\out("  L = "&phys\sn(lt)&" m")
+  phys\out("  W = "&phys\sn(wd)&" m")
+  phys\out("  A = L*W = "&phys\sn(a)&" m^2")
 Else
-  Disp "  A = "&phys\sn(a)&" m^2"
+  phys\out("  A = "&phys\sn(a)&" m^2")
 EndIf
 If rf=1 Then
   ap:=ang
   an:=90-ang
-  Disp "  angle from PLANE given"
 Else
   an:=ang
   ap:=90-ang
-  Disp "  angle from NORMAL given"
 EndIf
-Disp "REASONING:"
-Disp "  Flux uses the angle"
-Disp "  between E and the NORMAL."
-Disp "  normal = 90° - plane"
-Disp "  from plane = "&phys\sn(ap)&"°"
-Disp "  from normal = "&phys\sn(an)&"°"
+phys\out("  from plane = "&phys\sn(ap)&"°")
+phys\out("  from normal = "&phys\sn(an)&"°")
 Disp "STEP 1: Formula"
-Disp "  Phi = E A cos(normal)"
-Disp "      = E A sin(plane)"
+Disp "  Phi = E*A*cos(normal)"
+Disp "  normal = 90° - plane"
 Disp "STEP 2: Plug in"
 phys\pk({"Phi = ("&phys\sn(ef)&")","("&phys\sn(a)&")","cos("&phys\sn(an)&"°)"})
-phi:=ef*a*cos(an°)
-Disp "STEP 3: Result"
-Disp "  Phi = "&phys\sf(phi)&" N*m^2/C"
 If an=90 Then
-  Disp "  E lies in the plane:"
-  Disp "  no field lines cross."
+  phi:=0
 Else
-  Disp "SIGN: + when E crosses"
-  Disp "  along the chosen normal"
+  phi:=ef*a*cos(an°)
+EndIf
+Disp "STEP 3: Answer"
+phys\out("  Phi = "&phys\sf(phi)&" N*m^2/C")
+Disp "DIRECTION:"
+If ef=0 Then
+  Disp "  No field: zero flux."
+ElseIf an=90 Then
+  Disp "  E lies in the plane."
+  Disp "  No field lines cross."
+Else
+  Disp "  Positive for chosen normal"
+  Disp "  Reverse normal: flip sign."
 EndIf
 EndPrgm
 
 Define LibPriv m222()=
 Prgm
-Local c,q,phi,e0,n,i,si,ql,xl,yl,r,d,qen
+Local c,q,phi,e0,n,i,si,ql,xl,yl,r,d,qen,edge
 e0:=8.854ᴇ−12
 phys\hdr("22.2 Flux from Q_enc")
 Disp "1 Phi from Q  2 Q from Phi"
 Disp "3 charges in a sphere"
-phys\ask("1 Phi<-Q, 2 Q<-Phi, 3 sphere",103)
+phys\ask("1=flux 2=charge 3=sphere",103)
 c:=physv
 If physok=0 Then
   Return
 EndIf
 If c=1 Then
-  phys\ask("Q enclosed in C (E for x10^)",0)
+  phys\ask("Enclosed charge Q in C",0)
   q:=physv
   If physok=0 Then
     Return
   EndIf
-  Disp "GIVEN: Q_enc = "&phys\sn(q)&" C"
-  Disp "STEP 1: Gauss's law"
+  Disp "GIVEN:"
+  phys\out("  Q_enc = "&phys\sn(q)&" C")
+  Disp "STEP 1: Formula"
   Disp "  Phi = Q_enc/ε0"
   Disp "STEP 2: Plug in"
   phys\pk({"Phi = ("&phys\sn(q)&")","/(8.854ᴇ−12)"})
   phi:=q/e0
-  Disp "STEP 3: Result"
-  Disp "  Phi = "&phys\sf(phi)&" N*m^2/C"
+  Disp "STEP 3: Answer"
+  phys\out("  Phi = "&phys\sf(phi)&" N*m^2/C")
 ElseIf c=2 Then
-  phys\ask("Phi in N*m^2/C (- if inward)",0)
+  phys\ask("Flux in N*m^2/C (-=inward)",0)
   phi:=physv
   If physok=0 Then
     Return
   EndIf
-  Disp "GIVEN: Phi = "&phys\sn(phi)
-  Disp "  N*m^2/C (- = inward)"
-  Disp "STEP 1: Gauss's law"
+  Disp "GIVEN:"
+  phys\out("  Phi = "&phys\sn(phi)&" N*m^2/C")
+  Disp "STEP 1: Formula"
   Disp "  Q_enc = ε0*Phi"
   Disp "STEP 2: Plug in"
   phys\pk({"Q = (8.854ᴇ−12)","("&phys\sn(phi)&")"})
   q:=e0*phi
-  Disp "STEP 3: Result"
-  Disp "  Q_enc = "&phys\sf(q)&" C"
+  Disp "STEP 3: Answer"
+  phys\out("  Q_enc = "&phys\sf(q)&" C")
 Else
   phys\ask("Number of charges 1-4",104)
   n:=physv
@@ -1151,7 +1207,7 @@ Else
   yl:=newList(n)
   For i,1,n
     si:=string(i)
-    phys\ask("q"&si&" in C (E for x10^: 4.4E-9)",0)
+    phys\ask("Charge q"&si&" in C",0)
     ql[i]:=physv
     phys\ask("x"&si&" in m",0)
     xl[i]:=physv
@@ -1161,64 +1217,76 @@ Else
   If physok=0 Then
     Return
   EndIf
-  Disp "GIVEN (sphere at origin):"
-  For i,1,n
-    si:=string(i)
-    phys\pk({"q"&si&" = "&phys\sn(ql[i])&" C"," at ("&phys\sn(xl[i])&",",phys\sn(yl[i])&")"})
-  EndFor
   Loop
     phys\ask("Sphere radius R in m",1)
     r:=physv
     If physok=0 Then
-      physok:=1
       Return
     EndIf
-    Disp "SPHERE R = "&phys\sn(r)&" m"
-    Disp "STEP 1: Which are inside?"
-    Disp "  d = √(x^2+y^2) vs R"
-    qen:=0
+    Disp "GIVEN:"
+    Disp "  Sphere centered at origin"
     For i,1,n
       si:=string(i)
-      d:=√(xl[i]^2+yl[i]^2)
-      Disp "  q"&si&": d = "&phys\sn(d)&" m"
+      phys\pk({"q"&si&" = "&phys\sn(ql[i])&" C"," at ("&phys\sn(xl[i])&",",phys\sn(yl[i])&") m"})
+    EndFor
+    phys\out("  R = "&phys\sn(r)&" m")
+    Disp "STEP 1: Formula"
+    Disp "  d = √(x^2+y^2)"
+    Disp "  Q_enc = sum with d < R"
+    Disp "  Phi = Q_enc/ε0"
+    Disp "STEP 2: Plug in"
+    qen:=0
+    edge:=0
+    For i,1,n
+      si:=string(i)
+      d:=approx(√(xl[i]^2+yl[i]^2))
+      phys\out("  q"&si&": d = "&phys\sn(d)&" m")
       If d<r Then
         Disp "    d < R: inside"
         qen:=qen+ql[i]
       ElseIf d>r Then
         Disp "    d > R: outside"
+      ElseIf ql[i]=0 Then
+        Disp "    On surface, q=0: no flux"
       Else
-        Disp "    ON surface: excluded"
-        Disp "    (flux ill-defined)"
+        Disp "    ON surface: undefined"
+        edge:=1
       EndIf
     EndFor
-    Disp "STEP 2: Q_enc = sum inside"
-    Disp "  Q_enc = "&phys\sf(qen)&" C"
-    Disp "STEP 3: Phi = Q_enc/ε0"
-    phys\pk({"Phi = ("&phys\sn(qen)&")","/(8.854ᴇ−12)"})
-    phi:=qen/e0
-    Disp "  Phi = "&phys\sf(phi)&" N*m^2/C"
-    If phi>0 Then
-      Disp "  net flux OUTWARD"
-    ElseIf phi<0 Then
-      Disp "  net flux INWARD"
+    If edge=0 Then
+      phys\pk({"Phi = ("&phys\sn(qen)&")","/(8.854ᴇ−12)"})
+      phi:=qen/e0
+      Disp "STEP 3: Answer"
+      phys\out("  Q_enc = "&phys\sf(qen)&" C")
+      phys\out("  Phi = "&phys\sf(phi)&" N*m^2/C")
+      Disp "DIRECTION:"
+      If phi>0 Then
+        Disp "  Outward: positive Q_enc."
+      ElseIf phi<0 Then
+        Disp "  Inward: negative Q_enc."
+      Else
+        Disp "  Zero net flux: Q_enc = 0."
+      EndIf
     Else
-      Disp "  zero net flux"
+      Disp "STEP 3: Answer"
+      Disp "  Flux is undefined here."
+      Disp "DIRECTION: undefined"
+      Disp "  A point charge is on R."
+      Disp "  Choose a different radius."
     EndIf
     phys\ask("Another radius? 1=yes 0=no",201)
     If physok=0 or physv=0 Then
-      physok:=1
       Return
     EndIf
   EndLoop
 EndIf
+Disp "DIRECTION:"
 If phi>0 Then
-  Disp "SIGN: + = net flux OUTWARD"
-  Disp "  (positive Q_enc)"
+  Disp "  Outward: positive Q_enc."
 ElseIf phi<0 Then
-  Disp "SIGN: - = net flux INWARD"
-  Disp "  (negative Q_enc)"
+  Disp "  Inward: negative Q_enc."
 Else
-  Disp "SIGN: zero (Q_enc = 0)"
+  Disp "  Zero net flux: Q_enc = 0."
 EndIf
 EndPrgm
 
@@ -1230,51 +1298,39 @@ phys\hdr("22.3 Line charge")
 Disp "1 E from λ and r"
 Disp "2 λ from E data"
 Disp "3 flux thru coax cylinder"
-phys\ask("1 E<-λ, 2 λ<-E, 3 flux",103)
+phys\ask("1=field 2=line charge 3=flux",103)
 c:=physv
 If physok=0 Then
   Return
 EndIf
 If c=1 Then
-  phys\ask("λ (lambda) in C/m",0)
+  phys\ask("Line charge λ in C/m",0)
   lam:=physv
-  phys\ask("r (from the line) in m",1)
+  phys\ask("Distance r from line in m",1)
   r:=physv
   If physok=0 Then
     Return
   EndIf
   Disp "GIVEN:"
-  Disp "  λ = "&phys\sn(lam)&" C/m"
-  Disp "  r = "&phys\sn(r)&" m"
-  Disp "GAUSS: cylinder radius r"
-  Disp "  E*2πrl = λl/ε0"
+  phys\out("  λ = "&phys\sn(lam)&" C/m")
+  phys\out("  r = "&phys\sn(r)&" m")
   Disp "STEP 1: Formula"
   Disp "  E = λ/(2π ε0 r)"
   Disp "STEP 2: Plug in"
   phys\pk({"E = ("&phys\sn(lam)&")","/(2π(8.854ᴇ−12)","("&phys\sn(r)&"))"})
   ef:=lam/(2*π*e0*r)
-  Disp "STEP 3: Result"
-  If ef>0 Then
-    Disp "  E = "&phys\sf(ef)&" N/C"
-    Disp "DIRECTION: radially outward"
-    Disp "  (away from the line, λ>0)"
-  ElseIf ef<0 Then
-    Disp "  E = "&phys\sf(abs(ef))&" N/C"
-    Disp "DIRECTION: radially inward"
-    Disp "  (toward the line, λ<0)"
-  Else
-    Disp "  E = 0 (no charge)"
-  EndIf
+  Disp "STEP 3: Answer"
+  phys\out("  E = "&phys\sf(abs(ef))&" N/C")
 ElseIf c=2 Then
   phys\ask("Data: 1=E and r, 2=product E*r",102)
   s2:=physv
   If s2=1 Then
-    phys\ask("E in N/C (- if inward)",0)
+    phys\ask("Field E in N/C (-=inward)",0)
     ef:=physv
-    phys\ask("r in m",1)
+    phys\ask("Distance r in m",1)
     r:=physv
   Else
-    phys\ask("E*r in N*m/C (N*cm/C: end cm)",0)
+    phys\ask("E*r in N*m/C (-=inward)",0)
     er:=physv
   EndIf
   If physok=0 Then
@@ -1282,53 +1338,46 @@ ElseIf c=2 Then
   EndIf
   Disp "GIVEN:"
   If s2=1 Then
-    Disp "  E = "&phys\sn(ef)&" N/C"
-    Disp "  r = "&phys\sn(r)&" m"
+    phys\out("  E = "&phys\sn(ef)&" N/C")
+    phys\out("  r = "&phys\sn(r)&" m")
     er:=ef*r
-    Disp "  E*r = "&phys\sn(er)&" N*m/C"
   Else
-    Disp "  E*r = "&phys\sn(er)&" N*m/C"
+    phys\out("  E*r = "&phys\sn(er)&" N*m/C")
   EndIf
-  Disp "REASONING: E = λ/(2πε0 r)"
-  Disp "  so E*r is constant and"
-  Disp "STEP 1: λ = 2π ε0 (E r)"
+  Disp "STEP 1: Formula"
+  Disp "  λ = 2π ε0 (E*r)"
   Disp "STEP 2: Plug in"
   phys\pk({"λ = 2π(8.854ᴇ−12)","("&phys\sn(er)&")"})
   lam:=2*π*e0*er
-  Disp "STEP 3: Result"
-  Disp "  λ = "&phys\sf(lam)&" C/m"
-  If lam>0 Then
-    Disp "  + : E points outward"
-  ElseIf lam<0 Then
-    Disp "  - : E points inward"
-  EndIf
+  Disp "STEP 3: Answer"
+  phys\out("  λ = "&phys\sf(lam)&" C/m")
 Else
-  phys\ask("λ (lambda) in C/m",0)
+  phys\ask("Line charge λ in C/m",0)
   lam:=physv
-  phys\ask("l (cylinder length) in m",1)
+  phys\ask("Cylinder length l in m",1)
   l:=physv
   If physok=0 Then
     Return
   EndIf
   Disp "GIVEN:"
-  Disp "  λ = "&phys\sn(lam)&" C/m"
-  Disp "  l = "&phys\sn(l)&" m"
-  Disp "REASONING:"
-  Disp "  Q_enc = λ*l (line inside)"
-  Disp "  E is parallel to the end"
-  Disp "  caps: flux only on side."
-  Disp "  Radius does NOT matter."
-  Disp "STEP 1: Phi = λ*l/ε0"
+  phys\out("  λ = "&phys\sn(lam)&" C/m")
+  phys\out("  l = "&phys\sn(l)&" m")
+  Disp "STEP 1: Formula"
+  Disp "  Phi = λ*l/ε0"
+  Disp "  Cylinder radius cancels."
   Disp "STEP 2: Plug in"
   phys\pk({"Phi = ("&phys\sn(lam)&")","("&phys\sn(l)&")","/(8.854ᴇ−12)"})
   phi:=lam*l/e0
-  Disp "STEP 3: Result"
-  Disp "  Phi = "&phys\sf(phi)&" N*m^2/C"
-  If phi>0 Then
-    Disp "  net flux OUTWARD"
-  ElseIf phi<0 Then
-    Disp "  net flux INWARD"
-  EndIf
+  Disp "STEP 3: Answer"
+  phys\out("  Phi = "&phys\sf(phi)&" N*m^2/C")
+EndIf
+Disp "DIRECTION:"
+If lam>0 Then
+  Disp "  Outward: positive λ."
+ElseIf lam<0 Then
+  Disp "  Inward: negative λ."
+Else
+  Disp "  No charge: E and flux = 0."
 EndIf
 EndPrgm
 
@@ -1352,18 +1401,18 @@ If physok=0 Then
   Return
 EndIf
 If c=1 Then
-  phys\ask("Q (total) in C (E for x10^)",0)
+  phys\ask("Total charge Q in C",0)
   q:=physv
   phys\ask("Shell radius R in m (0=point)",2)
   rr:=physv
-  phys\ask("r (from center) in m",1)
+  phys\ask("Distance r from center in m",1)
   r:=physv
 ElseIf c=2 or c=3 Then
-  phys\ask("Q (total) in C (E for x10^)",0)
+  phys\ask("Total charge Q in C",0)
   q:=physv
   phys\ask("Sphere radius R in m",1)
   rr:=physv
-  phys\ask("r (from center) in m",1)
+  phys\ask("Distance r from center in m",1)
   r:=physv
 ElseIf c=4 Then
   phys\ask("Number of shells 1-4",104)
@@ -1375,27 +1424,27 @@ ElseIf c=4 Then
   rl:=newList(n)
   For i,1,n
     si:=string(i)
-    phys\ask("Q"&si&" in C (E for x10^)",0)
+    phys\ask("Charge Q"&si&" in C",0)
     ql[i]:=physv
-    phys\ask("R"&si&" (radius) in m",2)
+    phys\ask("Radius R"&si&" in m",2)
     rl[i]:=physv
   EndFor
-  phys\ask("r (from center) in m",1)
+  phys\ask("Distance r from center in m",1)
   r:=physv
 Else
-  phys\ask("q at center in C (E for x10^)",0)
+  phys\ask("Charge q at center in C",0)
   q:=physv
   phys\ask("Cavity radius a in m",1)
   a:=physv
-  phys\ask("rho (density) in C/m^3",0)
+  phys\ask("Charge density rho in C/m^3",0)
   rho:=physv
   phys\ask("Outer radius b in m (0=none)",2)
   b:=physv
-  phys\ask("r (from center) in m",1)
+  phys\ask("Distance r from center in m",1)
   r:=physv
 EndIf
 If f=1 Then
-  phys\ask("Test charge q in C (at r)",0)
+  phys\ask("Test charge q in C",0)
   tq:=physv
 EndIf
 If physok=0 Then
@@ -1405,69 +1454,77 @@ Disp "GIVEN:"
 If c=4 Then
   For i,1,n
     si:=string(i)
-    Disp "  Q"&si&" = "&phys\sn(ql[i])&" C"
-    Disp "    R"&si&" = "&phys\sn(rl[i])&" m"
+    phys\out("  Q"&si&" = "&phys\sn(ql[i])&" C")
+    phys\out("  R"&si&" = "&phys\sn(rl[i])&" m")
   EndFor
 ElseIf c=5 Then
-  Disp "  q = "&phys\sn(q)&" C"
-  Disp "  a = "&phys\sn(a)&" m"
-  Disp "  rho = "&phys\sn(rho)&" C/m^3"
+  phys\out("  q = "&phys\sn(q)&" C")
+  phys\out("  a = "&phys\sn(a)&" m")
+  phys\out("  rho = "&phys\sn(rho)&" C/m^3")
   If b>0 Then
-    Disp "  b = "&phys\sn(b)&" m"
+    phys\out("  b = "&phys\sn(b)&" m")
   Else
-    Disp "  material has no outer edge"
+    Disp "  No outer edge of material"
+  EndIf
+  If b>0 and b≤a Then
+    Disp "Outer radius b must be"
+    Disp "  bigger than cavity a."
+    Return
   EndIf
 Else
-  Disp "  Q = "&phys\sn(q)&" C"
-  If rr=0 Then
-    Disp "  point charge (R = 0)"
+  phys\out("  Q = "&phys\sn(q)&" C")
+  phys\out("  R = "&phys\sn(rr)&" m")
+EndIf
+phys\out("  r = "&phys\sn(r)&" m")
+If f=1 Then
+  phys\out("  Test q = "&phys\sn(tq)&" C")
+EndIf
+Disp "STEP 1: Formula"
+Disp "  E = k*Q_enc/r^2"
+If c=2 Then
+  Disp "  Inside: Q_enc = Q*r^3/R^3"
+ElseIf c=4 Then
+  Disp "  Q_enc = sum with R ≤ r"
+ElseIf c=5 Then
+  If r<a Then
+    Disp "  In cavity: Q_enc = q"
   Else
-    Disp "  R = "&phys\sn(rr)&" m"
+    Disp "  Q_enc = q + rho*V"
+    Disp "  V = (4/3)π(rm^3-a^3)"
+    Disp "  rm = r, capped at edge b"
   EndIf
 EndIf
-Disp "  r = "&phys\sn(r)&" m"
-Disp "GAUSS: sphere of radius r"
-Disp "  E*4πr^2 = Q_enc/ε0"
-Disp "  => E = kQ_enc/r^2"
-Disp "STEP 1: Charge enclosed"
+If f=1 Then
+  Disp "  F = q*E = k*q*Q_enc/r^2"
+  Disp "  Use distance r, not size R"
+EndIf
+Disp "STEP 2: Plug in"
 If c=1 Then
   If r<rr Then
-    Disp "  r < R: inside the shell,"
-    Disp "  no charge enclosed"
+    Disp "  Inside shell: Q_enc = 0"
     qen:=0
   Else
     If r=rr Then
-      Disp "  r = R: on the shell;"
-      Disp "  using just outside"
-    Else
-      Disp "  r > R: all of Q inside"
+      Disp "  At shell: just outside"
     EndIf
     qen:=q
   EndIf
 ElseIf c=2 Then
   If r<rr Then
-    Disp "  r < R: only part of the"
-    Disp "  charge is inside:"
-    Disp "  Q_enc = Q r^3/R^3"
     phys\pk({"Q_enc = ("&phys\sn(q)&")","("&phys\sn(r)&")^3","/("&phys\sn(rr)&")^3"})
-    qen:=q*r^3/rr^3
-    Disp "  (same as E = kQr/R^3)"
+    qen:=q*(r/rr)^3
   Else
-    Disp "  r ≥ R: all of Q inside"
+    Disp "  r ≥ R: all charge inside"
     qen:=q
   EndIf
 ElseIf c=3 Then
   If r<rr Then
-    Disp "  r < R: inside a conductor"
-    Disp "  E = 0; charge sits on the"
-    Disp "  surface, Q_enc = 0"
+    Disp "  In metal: Q_enc = E = 0"
+    Disp "  Charge is on the surface."
     qen:=0
   Else
     If r=rr Then
-      Disp "  r = R: at the surface;"
-      Disp "  using just outside"
-    Else
-      Disp "  r > R: all of Q inside"
+      Disp "  At surface: just outside"
     EndIf
     qen:=q
   EndIf
@@ -1476,70 +1533,67 @@ ElseIf c=4 Then
   For i,1,n
     si:=string(i)
     If rl[i]≤r Then
-      Disp "  shell "&si&": R ≤ r, enclosed"
+      phys\out("  Shell "&si&": enclosed")
+      If rl[i]=r Then
+        Disp "    At shell: just outside"
+      EndIf
       qen:=qen+ql[i]
     Else
-      Disp "  shell "&si&": R > r, not inside"
+      phys\out("  Shell "&si&": not enclosed")
     EndIf
   EndFor
-  Disp "  Q_enc = sum of enclosed"
 Else
-  If b>0 and b≤a Then
-    Disp "Outer radius b must be"
-    Disp "  bigger than cavity a."
-    Return
-  EndIf
   rm:=r
   If b>0 and r>b Then
     rm:=b
   EndIf
   If r<a Then
-    Disp "  r < a: in the cavity,"
-    Disp "  only q is enclosed"
+    Disp "  In cavity: only q inside"
     qen:=q
   Else
-    Disp "  Q_enc = q + rho*V"
-    Disp "  V = (4/3)π(r^3 - a^3)"
     If rm<r Then
-      Disp "  r > b: material ends at b"
-      Disp "  so use b instead of r"
+      Disp "  Outside material: rm = b"
     EndIf
     phys\pk({"Q_enc = ("&phys\sn(q)&")","+("&phys\sn(rho)&")","(4/3)π","(("&phys\sn(rm)&")^3","-("&phys\sn(a)&")^3)"})
-    qen:=q+rho*(4/3)*π*(rm^3-a^3)
+    qen:=q+rho*(4/3)*π*(rm-a)*(rm^2+rm*a+a^2)
   EndIf
 EndIf
-Disp "  Q_enc = "&phys\sf(qen)&" C"
-Disp "STEP 2: E = kQ_enc/r^2"
 phys\pk({"E = (8.99ᴇ9)","("&phys\sn(qen)&")","/("&phys\sn(r)&")^2"})
 ev:=kc*qen/r^2
-Disp "STEP 3: Result"
+If f=1 Then
+  fv:=tq*ev
+  phys\pk({"F = ("&phys\sn(tq)&")","("&phys\sn(ev)&")"})
+EndIf
+Disp "STEP 3: Answer"
+phys\out("  Q_enc = "&phys\sf(qen)&" C")
 If ev>0 Then
-  Disp "  E = "&phys\sf(ev)&" N/C outward"
+  phys\out("  E = "&phys\sf(ev)&" N/C outward")
 ElseIf ev<0 Then
-  Disp "  E = "&phys\sf(abs(ev))&" N/C inward"
+  phys\out("  E = "&phys\sf(abs(ev))&" N/C inward")
 Else
   Disp "  E = 0 N/C"
 EndIf
-Disp "DIRECTION: Q_enc>0 outward,"
-Disp "  Q_enc<0 inward (to center)"
-Disp "Signed (+ = away from ctr):"
-Disp "  E = "&phys\sf(ev)&" N/C"
+phys\out("  Signed E = "&phys\sf(ev)&" N/C")
 If f=1 Then
-  fv:=tq*ev
-  Disp "STEP 4: Force on q"
-  Disp "  F = qE = kqQ_enc/r^2"
-  Disp "  (r = distance of q from"
-  Disp "  the center, NOT R)"
-  phys\pk({"F = ("&phys\sn(tq)&")","("&phys\sf(ev)&")"})
-  Disp "  |F| = "&phys\sf(abs(fv))&" N"
+  phys\out("  |F| = "&phys\sf(abs(fv))&" N")
+  phys\out("  Signed F = "&phys\sf(fv)&" N")
+EndIf
+Disp "DIRECTION:"
+If ev>0 Then
+  Disp "  E outward: Q_enc > 0."
+ElseIf ev<0 Then
+  Disp "  E inward: Q_enc < 0."
+Else
+  Disp "  E = 0: no net field."
+EndIf
+If f=1 Then
   If fv>0 Then
-    Disp "  pushed AWAY from center"
+    Disp "  F away from center: qE>0."
   ElseIf fv<0 Then
-    Disp "  pulled TOWARD the center"
+    Disp "  F toward center: qE<0."
   Else
-    Disp "  no force"
+    Disp "  F = 0: no force."
   EndIf
-  Disp "  Signed: F = "&phys\sf(fv)&" N"
 EndIf
 EndPrgm
 
@@ -1560,13 +1614,13 @@ Disp "4 sphere from its flux"
 phys\ask("Type 1-4",104)
 c:=physv
 If c=1 or c=2 Then
-  phys\ask("Q in C (E for x10^)",0)
+  phys\ask("Charge Q in C",0)
   q:=physv
 ElseIf c=3 Then
-  phys\ask("E*r^2 in N*m^2/C",0)
+  phys\ask("E*r^2 in N*m^2/C (-=inward)",0)
   er2:=physv
 Else
-  phys\ask("Phi in N*m^2/C (- if inward)",0)
+  phys\ask("Flux in N*m^2/C (-=inward)",0)
   phi:=physv
 EndIf
 phys\ask("Sphere radius R in m",1)
@@ -1575,128 +1629,155 @@ If physok=0 Then
   Return
 EndIf
 Disp "GIVEN:"
-Disp "  R = "&phys\sn(rr)&" m"
+phys\out("  R = "&phys\sn(rr)&" m")
+If c=1 or c=2 Then
+  phys\out("  Q = "&phys\sn(q)&" C")
+ElseIf c=3 Then
+  phys\out("  E*r^2 = "&phys\sn(er2)&" N*m^2/C")
+Else
+  phys\out("  Phi = "&phys\sn(phi)&" N*m^2/C")
+EndIf
+Disp "STEP 1: Formula"
 If c=1 Then
-  Disp "  Q = "&phys\sn(q)&" C"
-  Disp "STEP 1: σ = Q/(4πR^2)"
+  Disp "  σ = Q/(4πR^2)"
+ElseIf c=2 Then
+  Disp "  ρ = Q/((4/3)πR^3)"
+ElseIf c=3 Then
+  Disp "  Q = 4π ε0 (E*r^2)"
+  Disp "  ρ = 3 ε0 (E*r^2)/R^3"
+  Disp "  Field data: outside sphere"
+Else
+  Disp "  Q = ε0*Phi"
+  Disp "  E = |Phi|/(4πR^2)"
+  Disp "  σ = Q/(4πR^2)"
+  Disp "  Charge must be symmetric."
+EndIf
+Disp "STEP 2: Plug in"
+If c=1 Then
   phys\pk({"σ = ("&phys\sn(q)&")","/(4π("&phys\sn(rr)&")^2)"})
   sig:=q/(4*π*rr^2)
-  Disp "STEP 2: Result"
-  Disp "  σ = "&phys\sf(sig)&" C/m^2"
 ElseIf c=2 Then
-  Disp "  Q = "&phys\sn(q)&" C"
-  Disp "STEP 1: ρ = Q/((4/3)πR^3)"
   phys\pk({"ρ = ("&phys\sn(q)&")","/((4/3)π","("&phys\sn(rr)&")^3)"})
   rho:=q/((4/3)*π*rr^3)
-  Disp "STEP 2: Result"
-  Disp "  ρ = "&phys\sf(rho)&" C/m^3"
 ElseIf c=3 Then
-  Disp "  E*r^2 = "&phys\sn(er2)
-  Disp "REASONING: outside, E=kQ/r^2"
-  Disp "  so E*r^2 = Q/(4π ε0)"
-  Disp "STEP 1: Q = 4π ε0 (E r^2)"
   phys\pk({"Q = 4π(8.854ᴇ−12)","("&phys\sn(er2)&")"})
   q:=4*π*e0*er2
-  Disp "  Q = "&phys\sf(q)&" C"
-  Disp "STEP 2: ρ = Q/((4/3)πR^3)"
-  Disp "  = 3 ε0 (E r^2)/R^3"
   phys\pk({"ρ = 3(8.854ᴇ−12)","("&phys\sn(er2)&")","/("&phys\sn(rr)&")^3"})
   rho:=3*e0*er2/rr^3
-  Disp "STEP 3: Result"
-  Disp "  ρ = "&phys\sf(rho)&" C/m^3"
 Else
-  Disp "  Phi = "&phys\sn(phi)
-  Disp "    N*m^2/C (- = inward)"
-  Disp "STEP 1: Q = ε0*Phi"
   phys\pk({"Q = (8.854ᴇ−12)","("&phys\sn(phi)&")"})
   q:=e0*phi
-  Disp "  Q = "&phys\sf(q)&" C"
-  Disp "STEP 2: E = |Phi|/(4πR^2)"
-  Disp "  (E same all over surface)"
   phys\pk({"E = "&phys\sn(abs(phi)),"/(4π("&phys\sn(rr)&")^2)"})
   ev:=abs(phi)/(4*π*rr^2)
-  If phi<0 Then
-    Disp "  E = "&phys\sf(ev)&" N/C inward"
-  Else
-    Disp "  E = "&phys\sf(ev)&" N/C outward"
-  EndIf
-  Disp "STEP 3: σ = Q/(4πR^2)"
   phys\pk({"σ = ("&phys\sn(q)&")","/(4π("&phys\sn(rr)&")^2)"})
   sig:=q/(4*π*rr^2)
-  Disp "  σ = "&phys\sf(sig)&" C/m^2"
+EndIf
+Disp "STEP 3: Answer"
+If c=1 Then
+  phys\out("  σ = "&phys\sf(sig)&" C/m^2")
+ElseIf c=2 Then
+  phys\out("  ρ = "&phys\sf(rho)&" C/m^3")
+ElseIf c=3 Then
+  phys\out("  Q = "&phys\sf(q)&" C")
+  phys\out("  ρ = "&phys\sf(rho)&" C/m^3")
+Else
+  phys\out("  Q = "&phys\sf(q)&" C")
+  If phi<0 Then
+    phys\out("  E = "&phys\sf(ev)&" N/C inward")
+  ElseIf phi>0 Then
+    phys\out("  E = "&phys\sf(ev)&" N/C outward")
+  Else
+    Disp "  E = 0 N/C"
+  EndIf
+  phys\out("  σ = "&phys\sf(sig)&" C/m^2")
+EndIf
+Disp "DIRECTION:"
+If q>0 Then
+  Disp "  Positive density: Q > 0."
+  If c=4 Then
+    Disp "  Field points outward."
+  EndIf
+ElseIf q<0 Then
+  Disp "  Negative density: Q < 0."
+  If c=4 Then
+    Disp "  Field points inward."
+  EndIf
+Else
+  Disp "  No charge: density = 0."
+  If c=4 Then
+    Disp "  No field direction."
+  EndIf
 EndIf
 EndPrgm
 
 Define LibPriv m227()=
 Prgm
-Local lam,lo,a,b,c,r,e0,ev
+Local lam,lo,a,b,c,r,e0,ev,le
 e0:=8.854ᴇ−12
 phys\hdr("22.7 Coaxial cable")
-phys\ask("Inner λ in C/m (E for x10^)",0)
+phys\ask("Inner line charge λ in C/m",0)
 lam:=physv
 phys\ask("Outer net λ in C/m (0=neutral)",0)
 lo:=physv
 phys\ask("Inner radius a in m (0=line)",2)
 a:=physv
-phys\ask("Outer cond. inner radius b, m",1)
+phys\ask("Tube inner radius b in m",1)
 b:=physv
-phys\ask("Outer cond. outer radius c, m",1)
+phys\ask("Tube outer radius c in m",1)
 c:=physv
-phys\ask("r (from axis) in m",1)
+phys\ask("Distance r from axis in m",1)
 r:=physv
 If physok=0 Then
   Return
 EndIf
 Disp "GIVEN:"
-Disp "  λ inner = "&phys\sn(lam)&" C/m"
-Disp "  λ outer = "&phys\sn(lo)&" C/m"
-Disp "  a = "&phys\sn(a)&" m"
-Disp "  b = "&phys\sn(b)&" m"
-Disp "  c = "&phys\sn(c)&" m"
-Disp "  r = "&phys\sn(r)&" m"
+phys\out("  λ inner = "&phys\sn(lam)&" C/m")
+phys\out("  λ outer = "&phys\sn(lo)&" C/m")
+phys\out("  a = "&phys\sn(a)&" m")
+phys\out("  b = "&phys\sn(b)&" m")
+phys\out("  c = "&phys\sn(c)&" m")
+phys\out("  r = "&phys\sn(r)&" m")
 If not (a<b and b<c) Then
   Disp "Need a < b < c (inner wire"
   Disp "  inside the outer tube)."
   Return
 EndIf
-Disp "INDUCED CHARGE (Gauss):"
-Disp "  E = 0 inside the outer"
-Disp "  conductor, so a surface"
-Disp "  there encloses 0 charge:"
-Disp "  inner surface: "&phys\sf(−lam)
-Disp "  outer surface: "&phys\sf(lam+lo)
-Disp "  (both in C/m)"
-Disp "STEP 1: Region of r"
+Disp "STEP 1: Formula"
+Disp "  E = λ_enc/(2π ε0 r)"
+Disp "  In metal: E = 0."
+Disp "  Tube inner surface: -λ"
+Disp "  Tube outer surface: λ+λo"
+Disp "STEP 2: Plug in"
+If r=a or r=b or r=c Then
+  Disp "  At surface: outward side"
+EndIf
 If r<a Then
-  Disp "  r < a: inside the inner"
-  Disp "  conductor: E = 0"
-  ev:=0
+  Disp "  r < a: inside inner metal"
+  le:=0
 ElseIf r<b Then
   Disp "  a ≤ r < b: between them"
-  Disp "  Q_enc/l = λ inner"
-  Disp "STEP 2: E = λ/(2π ε0 r)"
-  phys\pk({"E = ("&phys\sn(lam)&")","/(2π(8.854ᴇ−12)","("&phys\sn(r)&"))"})
-  ev:=lam/(2*π*e0*r)
+  le:=lam
 ElseIf r<c Then
-  Disp "  b ≤ r < c: inside outer"
-  Disp "  conductor: E = 0"
-  ev:=0
+  Disp "  b ≤ r < c: in outer metal"
+  le:=0
 Else
   Disp "  r ≥ c: outside the cable"
-  Disp "  Q_enc/l = λ + λ outer"
-  Disp "STEP 2: E=(λ+λo)/(2π ε0 r)"
-  phys\pk({"E = ("&phys\sn(lam+lo)&")","/(2π(8.854ᴇ−12)","("&phys\sn(r)&"))"})
-  ev:=(lam+lo)/(2*π*e0*r)
+  le:=lam+lo
 EndIf
-Disp "STEP 3: Result"
+phys\pk({"E = ("&phys\sn(le)&")","/(2π(8.854ᴇ−12)","("&phys\sn(r)&"))"})
+ev:=le/(2*π*e0*r)
+Disp "STEP 3: Answer"
+phys\out("  E = "&phys\sf(abs(ev))&" N/C")
+phys\out("  inner surface: "&phys\sf(−lam)&" C/m")
+phys\out("  outer surface: "&phys\sf(lam+lo)&" C/m")
+Disp "  E=0 in metal needs Q_enc=0"
+Disp "DIRECTION:"
 If ev>0 Then
-  Disp "  E = "&phys\sf(ev)&" N/C"
-  Disp "  radially OUTWARD"
+  Disp "  Outward: λ_enc > 0."
 ElseIf ev<0 Then
-  Disp "  E = "&phys\sf(abs(ev))&" N/C"
-  Disp "  radially INWARD"
+  Disp "  Inward: λ_enc < 0."
 Else
-  Disp "  E = 0 N/C"
+  Disp "  E = 0: no net field."
 EndIf
 EndPrgm
 
@@ -1730,7 +1811,7 @@ If c=1 Then
   yl:=newList(n)
   For i,1,n
     si:=string(i)
-    phys\ask("q"&si&" in C (E for x10^: 1.2E-6)",0)
+    phys\ask("Charge q"&si&" (C)",0)
     ql[i]:=physv
     phys\ask("x"&si&" in m",0)
     xl[i]:=physv
@@ -1745,23 +1826,27 @@ If c=1 Then
     si:=string(i)
     phys\pk({"q"&si&" = "&phys\sn(ql[i])&" C"," at ("&phys\sn(xl[i])&",",phys\sn(yl[i])&")"})
   EndFor
-  Disp "STEP 1: U = sum k qi qj/rij"
+  Disp "STEP 1: Formula"
+  Disp "  U = sum k*qi*qj/rij"
   Disp "  (each pair counted once)"
-  Disp "STEP 2: Each pair"
+  Disp "STEP 2: Plug in"
   For i,1,n-1
     For j,i+1,n
       si:=string(i)
       sj:=string(j)
       r:=√((xl[i]-xl[j])^2+(yl[i]-yl[j])^2)
-      If r=0 Then
-        Disp "q"&si&" and q"&sj&" coincide:"
-        Disp "  r = 0, U is infinite."
-        Return
+      u:=0
+      If ql[i]≠0 and ql[j]≠0 Then
+        If r=0 Then
+          phys\out("q"&si&" and q"&sj&" coincide:")
+          Disp "  r = 0, U is infinite."
+          Return
+        EndIf
+        u:=kc*ql[i]*ql[j]/r
       EndIf
-      u:=kc*ql[i]*ql[j]/r
-      Disp "PAIR "&si&"-"&sj&": r = "&phys\sn(r)&" m"
+      phys\out("PAIR "&si&"-"&sj&": r = "&phys\sn(r)&" m")
       phys\pk({"U = (8.99ᴇ9)","("&phys\sn(ql[i])&")","("&phys\sn(ql[j])&")","/("&phys\sn(r)&")"})
-      Disp "  U"&si&sj&" = "&phys\sf(u)&" J"
+      phys\out("  U"&si&sj&" = "&phys\sf(u)&" J")
       ut:=ut+u
     EndFor
   EndFor
@@ -1786,27 +1871,37 @@ Else
   If physok=0 Then
     Return
   EndIf
-  Disp "STEP 1: U = sum k qa qb/r"
+  Disp "GIVEN:"
+  For j,1,np
+    phys\out("  Pair "&string(j)&":")
+    phys\out("  qa = "&phys\sn(qa[j])&" C")
+    phys\out("  qb = "&phys\sn(qb[j])&" C")
+    phys\out("  r = "&phys\sn(rl[j])&" m")
+  EndFor
+  Disp "STEP 1: Formula"
+  Disp "  U = sum k*qa*qb/r"
   Disp "  (each pair counted once)"
-  Disp "STEP 2: Each pair"
+  Disp "STEP 2: Plug in"
   For j,1,np
     sj:=string(j)
     u:=kc*qa[j]*qb[j]/rl[j]
-    Disp "PAIR "&sj&": r = "&phys\sn(rl[j])&" m"
+    phys\out("PAIR "&sj&": r = "&phys\sn(rl[j])&" m")
     phys\pk({"U = (8.99ᴇ9)","("&phys\sn(qa[j])&")","("&phys\sn(qb[j])&")","/("&phys\sn(rl[j])&")"})
-    Disp "  U"&sj&" = "&phys\sf(u)&" J"
+    phys\out("  U"&sj&" = "&phys\sf(u)&" J")
     ut:=ut+u
   EndFor
 EndIf
-Disp "STEP 3: Total"
-Disp "  U = "&phys\sf(ut)&" J"
+Disp "STEP 3: Answer"
+phys\out("  U = "&phys\sf(ut)&" J")
+Disp "DIRECTION:"
 If ut<0 Then
-  Disp "  U < 0: bound system, work"
-  Disp "  is needed to pull the"
-  Disp "  charges apart."
+  Disp "  U < 0: separating all"
+  Disp "  charges needs work."
 ElseIf ut>0 Then
-  Disp "  U > 0: work was needed to"
-  Disp "  push them together."
+  Disp "  U > 0: assembly from far"
+  Disp "  apart needs net work."
+Else
+  Disp "  Pair energies cancel."
 EndIf
 EndPrgm
 
@@ -1829,7 +1924,7 @@ xl:=newList(n)
 yl:=newList(n)
 For i,1,n
   si:=string(i)
-  phys\ask("q"&si&" in C (E for x10^: 2E-6)",0)
+  phys\ask("Charge q"&si&" (C)",0)
   ql[i]:=physv
   phys\ask("x"&si&" in m",0)
   xl[i]:=physv
@@ -1873,55 +1968,70 @@ For j,1,np
   phys\pk({"point "&pnm[j]&" = ("&phys\sn(pxl[j])&",",phys\sn(pyl[j])&")"})
 EndFor
 If c=2 Then
-  Disp "  moved q = "&phys\sn(q)&" C"
+  phys\out("  moved q = "&phys\sn(q)&" C")
 EndIf
-Disp "STEP 1: V = sum k qi/ri"
-Disp "  (scalar: keep the signs)"
+Disp "STEP 1: Formula"
+Disp "  V = sum k*qi/ri"
+If c=2 Then
+  Disp "  W = q*(Va-Vb)"
+EndIf
+Disp "STEP 2: Plug in"
 vl:=newList(np)
 For j,1,np
   lb:=pnm[j]
-  Disp "POINT "&lb&":"
+  phys\out("POINT "&lb&":")
   v:=0
   sa:=0
   For i,1,n
     si:=string(i)
     r:=√((pxl[j]-xl[i])^2+(pyl[j]-yl[i])^2)
-    If r=0 Then
-      Disp "Point "&lb&" is ON q"&si&":"
-      Disp "  r = 0, V is infinite."
-      Return
+    t:=0
+    If ql[i]≠0 Then
+      If r=0 Then
+        phys\out("Point "&lb&" is ON q"&si&":")
+        Disp "  r = 0, V is infinite."
+        Return
+      EndIf
+      t:=kc*ql[i]/r
     EndIf
-    t:=kc*ql[i]/r
-    Disp "  r"&si&" = "&phys\sn(r)&" m"
-    Disp "  kq"&si&"/r"&si&" = "&phys\sf(t)&" V"
+    phys\out("  r"&si&" = "&phys\sn(r)&" m")
+    phys\out("  kq"&si&"/r"&si&" = "&phys\sf(t)&" V")
     v:=v+t
     sa:=sa+abs(t)
   EndFor
   If abs(v)<1ᴇ−9*sa Then
     v:=0
   EndIf
-  Disp "  V"&lb&" = "&phys\sf(v)&" V"
   vl[j]:=v
 EndFor
 If c=2 Then
   va:=vl[1]
   vb:=vl[2]
-  Disp "STEP 2: Work by E force"
-  Disp "  W = q(Va - Vb)"
+  Disp "  Work from a to b:"
   phys\pk({"W = ("&phys\sn(q)&")","("&phys\sf(va)&"-(",phys\sf(vb)&"))"})
   w:=q*(va-vb)
-  Disp "  W = "&phys\sf(w)&" J"
+EndIf
+Disp "STEP 3: Answer"
+For j,1,np
+  phys\out("  V"&pnm[j]&" = "&phys\sf(vl[j])&" V")
+EndFor
+If c=2 Then
+  phys\out("  W = "&phys\sf(w)&" J")
+  Disp "  Slow outside work:"
+  phys\out("  -W = "&phys\sf(−w)&" J")
+EndIf
+Disp "DIRECTION:"
+If c=2 Then
   If w>0 Then
-    Disp "  W > 0: the field does"
-    Disp "  positive work on q"
+    Disp "  Field helps the move."
   ElseIf w<0 Then
-    Disp "  W < 0: the field opposes"
-    Disp "  the move a->b"
+    Disp "  Field opposes the move."
   Else
-    Disp "  W = 0: same potential"
+    Disp "  No work: q=0 or Va=Vb."
   EndIf
-  Disp "  Outside agent (slow move)"
-  Disp "  does -W = "&phys\sf(−w)&" J"
+Else
+  Disp "  V is a signed scalar."
+  Disp "  Add terms with signs."
 EndIf
 EndPrgm
 
@@ -1929,75 +2039,73 @@ Define LibPriv m233()=
 Prgm
 Local q,ka,kb,d,kv,va,vb,w,dv,ef
 phys\hdr("23.3 Work-energy")
-phys\ask("Charge q in C (E for x10^)",3)
+phys\ask("Charge q (C)",3)
 q:=physv
-phys\ask("K at A in J (0 if from rest)",2)
+phys\ask("Kinetic energy at A (J)",2)
 ka:=physv
-phys\ask("K at B in J",2)
+phys\ask("Kinetic energy at B (J)",2)
 kb:=physv
-phys\ask("Distance A to B, m (0=unknown)",2)
+phys\ask("Distance A to B (m, 0=unknown)",2)
 d:=physv
 phys\ask("Know V at A? 1=yes 0=no",201)
 kv:=physv
 If kv=1 Then
-  phys\ask("VA in V",0)
+  phys\ask("Potential at A (V)",0)
   va:=physv
 EndIf
 If physok=0 Then
   Return
 EndIf
+w:=kb-ka
+dv:=w/q
 Disp "GIVEN:"
-Disp "  q = "&phys\sn(q)&" C"
-Disp "  KA = "&phys\sn(ka)&" J"
-Disp "  KB = "&phys\sn(kb)&" J"
+phys\out("  q = "&phys\sn(q)&" C")
+phys\out("  KA = "&phys\sn(ka)&" J")
+phys\out("  KB = "&phys\sn(kb)&" J")
 If d>0 Then
-  Disp "  d = "&phys\sn(d)&" m"
+  phys\out("  d = "&phys\sn(d)&" m")
 EndIf
 If kv=1 Then
-  Disp "  VA = "&phys\sn(va)&" V"
+  phys\out("  VA = "&phys\sn(va)&" V")
 EndIf
-Disp "STEP 1: Work-energy thm"
-Disp "  W(field) = KB - KA"
+Disp "STEP 1: Formula"
+Disp "  W = KB-KA = q*(Va-Vb)"
+Disp "  Va-Vb = W/q"
+If kv=1 Then
+  Disp "  VB = VA-(Va-Vb)"
+EndIf
+If d>0 Then
+  Disp "  E = |Va-Vb|/d"
+EndIf
+Disp "STEP 2: Plug in"
 phys\pk({"W = ("&phys\sn(kb)&")","-("&phys\sn(ka)&")"})
-w:=kb-ka
-Disp "  W = "&phys\sf(w)&" J"
-Disp "STEP 2: Va - Vb = W/q"
-phys\pk({"Va-Vb = ("&phys\sf(w)&")","/("&phys\sn(q)&")"})
-dv:=w/q
-Disp "  Va - Vb = "&phys\sf(dv)&" V"
+phys\pk({"Va-Vb = ("&phys\sn(w)&")","/("&phys\sn(q)&")"})
 If kv=1 Then
   vb:=va-dv
-  Disp "STEP: VB = VA - (Va-Vb)"
-  phys\pk({"VB = ("&phys\sn(va)&")","-("&phys\sf(dv)&")"})
-  Disp "  VB = "&phys\sf(vb)&" V"
+  phys\pk({"VB = ("&phys\sn(va)&")","-("&phys\sn(dv)&")"})
 EndIf
 If d>0 Then
   ef:=abs(dv)/d
-  Disp "STEP: E = |Va - Vb|/d"
-  phys\pk({"E = "&phys\sf(abs(dv)),"/("&phys\sn(d)&")"})
-  Disp "  E = "&phys\sf(ef)&" V/m"
+  phys\pk({"E = "&phys\sn(abs(dv)),"/("&phys\sn(d)&")"})
+EndIf
+Disp "STEP 3: Answer"
+phys\out("  W = "&phys\sf(w)&" J")
+phys\out("  Va - Vb = "&phys\sf(dv)&" V")
+If kv=1 Then
+  phys\out("  VB = "&phys\sf(vb)&" V")
+EndIf
+If d>0 Then
+  phys\out("  E = "&phys\sf(ef)&" V/m")
 EndIf
 Disp "DIRECTION:"
 If dv>0 Then
-  Disp "  Va > Vb: E points from"
-  Disp "  A toward B (high to low V)"
+  Disp "  E: A toward B (V falls)"
 ElseIf dv<0 Then
-  Disp "  Vb > Va: E points from"
-  Disp "  B toward A (high to low V)"
+  Disp "  E: B toward A (V falls)"
 Else
-  Disp "  Va = Vb: no field along AB"
+  Disp "  No field component on AB."
 EndIf
-Disp "RULE: + charges speed up"
-Disp "  moving toward LOWER V;"
-Disp "  - charges speed up moving"
-Disp "  toward HIGHER V."
-If w>0 and q>0 Then
-  Disp "  Here: +q gained K, so it"
-  Disp "  moved to lower V."
-ElseIf w>0 and q<0 Then
-  Disp "  Here: -q gained K, so it"
-  Disp "  moved to higher V."
-EndIf
+Disp "  Speed up: + low, - high V"
 EndPrgm
 
 Define LibPriv m234()=
@@ -2020,50 +2128,55 @@ ElseIf c=2 Then
   q:=qe
   nm:="proton"
 Else
-  phys\ask("Mass m in kg",1)
+  phys\ask("Mass (kg)",1)
   m:=physv
-  phys\ask("Charge q in C",3)
+  phys\ask("Charge q (C)",3)
   q:=physv
   nm:="particle"
 EndIf
-phys\ask("Initial speed v1 in m/s",2)
+phys\ask("Initial speed v1 (m/s)",2)
 v1:=physv
-phys\ask("Final speed v2 in m/s",2)
+phys\ask("Final speed v2 (m/s)",2)
 v2:=physv
 If physok=0 Then
   Return
 EndIf
-Disp "GIVEN: "&nm
-Disp "  m = "&phys\sn(m)&" kg"
-Disp "  q = "&phys\sn(q)&" C"
-Disp "  v1 = "&phys\sn(v1)&" m/s"
-Disp "  v2 = "&phys\sn(v2)&" m/s"
-Disp "STEP 1: Kinetic energies"
-Disp "  K = (1/2) m v^2"
-phys\pk({"K1 = 0.5("&phys\sn(m)&")","("&phys\sn(v1)&")^2"})
+Disp "GIVEN:"
+phys\out("  "&nm)
+phys\out("  m = "&phys\sn(m)&" kg")
+phys\out("  q = "&phys\sn(q)&" C")
+phys\out("  v1 = "&phys\sn(v1)&" m/s")
+phys\out("  v2 = "&phys\sn(v2)&" m/s")
+If v1≥2.998ᴇ8 or v2≥2.998ᴇ8 Then
+  Disp "Speed must be below light."
+  Disp "  This uses K = m*v^2/2."
+  Return
+EndIf
 k1:=0.5*m*v1^2
-Disp "  K1 = "&phys\sf(k1)&" J"
-phys\pk({"K2 = 0.5("&phys\sn(m)&")","("&phys\sn(v2)&")^2"})
 k2:=0.5*m*v2^2
-Disp "  K2 = "&phys\sf(k2)&" J"
-dk:=k2-k1
-Disp "  ΔK = K2 - K1 = "&phys\sf(dk)&" J"
-Disp "STEP 2: W(field) = ΔK"
-Disp "  q(V1 - V2) = ΔK"
-Disp "  V1 - V2 = ΔK/q"
-phys\pk({"V1-V2 = ("&phys\sf(dk)&")","/("&phys\sn(q)&")"})
+dk:=0.5*m*(v2-v1)*(v2+v1)
 dv:=dk/q
-Disp "  V1 - V2 = "&phys\sf(dv)&" V"
-Disp "STEP 3: Result"
-Disp "  |ΔV| = "&phys\sf(abs(dv))&" V"
+Disp "STEP 1: Formula"
+Disp "  K = m*v^2/2"
+Disp "  W = K2-K1 = q*(V1-V2)"
+Disp "  V1-V2 = (K2-K1)/q"
+Disp "STEP 2: Plug in"
+phys\pk({"K1 = 0.5*("&phys\sn(m)&")","*("&phys\sn(v1)&")^2"})
+phys\pk({"K2 = 0.5*("&phys\sn(m)&")","*("&phys\sn(v2)&")^2"})
+phys\pk({"V1-V2 = ("&phys\sn(dk)&")","/("&phys\sn(q)&")"})
+Disp "STEP 3: Answer"
+phys\out("  K1 = "&phys\sf(k1)&" J")
+phys\out("  K2 = "&phys\sf(k2)&" J")
+phys\out("  ΔK = "&phys\sf(dk)&" J")
+phys\out("  V1 - V2 = "&phys\sf(dv)&" V")
+phys\out("  |ΔV| = "&phys\sf(abs(dv))&" V")
+Disp "DIRECTION:"
 If dv>0 Then
-  Disp "  V2 < V1: it must move to"
-  Disp "  a point "&phys\sf(dv)&" V LOWER"
+  phys\out("  End "&phys\sf(dv)&" V LOWER")
 ElseIf dv<0 Then
-  Disp "  V2 > V1: it must move to"
-  Disp "  a point "&phys\sf(abs(dv))&" V HIGHER"
+  phys\out("  End "&phys\sf(abs(dv))&" V HIGHER")
 Else
-  Disp "  no potential difference"
+  Disp "  Same V: no energy change."
 EndIf
 EndPrgm
 
@@ -2072,34 +2185,32 @@ Prgm
 Local v,ef,r,q,kc
 kc:=8.99ᴇ9
 phys\hdr("23.5 Point q from V,E")
-phys\ask("V (potential) in V",3)
+phys\ask("Potential V (V)",3)
 v:=physv
-phys\ask("E (field magnitude) in V/m",1)
+phys\ask("Field magnitude E (V/m)",1)
 ef:=physv
 If physok=0 Then
   Return
 EndIf
-Disp "GIVEN:"
-Disp "  V = "&phys\sn(v)&" V"
-Disp "  E = "&phys\sn(ef)&" V/m"
-Disp "REASONING: point charge"
-Disp "  V = kq/r, E = k|q|/r^2"
-Disp "  so |V|/E = r"
-Disp "STEP 1: r = |V|/E"
-phys\pk({"r = "&phys\sn(abs(v)),"/"&phys\sn(ef)})
 r:=abs(v)/ef
-Disp "  r = "&phys\sf(r)&" m"
-Disp "STEP 2: q = rV/k"
-phys\pk({"q = ("&phys\sf(r)&")","("&phys\sn(v)&")","/8.99ᴇ9"})
 q:=r*v/kc
-Disp "  q = "&phys\sf(q)&" C"
+Disp "GIVEN:"
+phys\out("  V = "&phys\sn(v)&" V")
+phys\out("  E = "&phys\sn(ef)&" V/m")
+Disp "STEP 1: Formula"
+Disp "  V = k*q/r; E = k*|q|/r^2"
+Disp "  r = |V|/E; q = r*V/k"
+Disp "STEP 2: Plug in"
+phys\pk({"r = "&phys\sn(abs(v)),"/"&phys\sn(ef)})
+phys\pk({"q = ("&phys\sn(r)&")","*("&phys\sn(v)&")","/8.99ᴇ9"})
+Disp "STEP 3: Answer"
+phys\out("  r = "&phys\sf(r)&" m")
+phys\out("  q = "&phys\sf(q)&" C")
 Disp "DIRECTION:"
 If q>0 Then
-  Disp "  q > 0: E points AWAY"
-  Disp "  from the charge"
+  Disp "  q>0: E points AWAY"
 Else
-  Disp "  q < 0: E points TOWARD"
-  Disp "  the charge"
+  Disp "  q<0: E points TOWARD"
 EndIf
 EndPrgm
 
@@ -2113,70 +2224,81 @@ Disp "2 K gained moving r1->r2"
 phys\ask("1=Va-Vb  2=K gained by q",102)
 c:=physv
 If c=1 Then
-  phys\ask("λ (lambda) in C/m",0)
+  phys\ask("Line charge lambda (C/m)",0)
   lam:=physv
-  phys\ask("ra (point a) in m",1)
+  phys\ask("Radius at a (m)",1)
   ra:=physv
-  phys\ask("rb (point b) in m",1)
+  phys\ask("Radius at b (m)",1)
   rb:=physv
 Else
-  phys\ask("Moving charge q in C",0)
+  phys\ask("Moving charge q (C)",0)
   q:=physv
-  phys\ask("λ (lambda) in C/m",0)
+  phys\ask("Line charge lambda (C/m)",0)
   lam:=physv
-  phys\ask("Start r1 in m",1)
+  phys\ask("Start radius r1 (m)",1)
   r1:=physv
-  phys\ask("End r2 in m",1)
+  phys\ask("End radius r2 (m)",1)
   r2:=physv
 EndIf
 If physok=0 Then
   Return
 EndIf
-f:=lam/(2*π*e0)
+f:=approx(lam/(2*π*e0))
 Disp "GIVEN:"
-Disp "  λ = "&phys\sn(lam)&" C/m"
+phys\out("  λ = "&phys\sn(lam)&" C/m")
 If c=1 Then
-  Disp "  ra = "&phys\sn(ra)&" m"
-  Disp "  rb = "&phys\sn(rb)&" m"
-  Disp "STEP 1: Formula"
-  Disp "  Va-Vb = λ/(2πε0) ln(rb/ra)"
-  Disp "STEP 2: Plug in"
-  phys\pk({"Va-Vb = ("&phys\sn(lam)&")","/(2π(8.854ᴇ−12))","ln("&phys\sn(rb)&"/"&phys\sn(ra)&")"})
-  dv:=f*ln(rb/ra)
-  Disp "STEP 3: Result"
-  Disp "  Va - Vb = "&phys\sf(dv)&" V"
-  If dv>0 Then
-    Disp "  a is at the higher V"
-  ElseIf dv<0 Then
-    Disp "  b is at the higher V"
-  EndIf
-  Disp "  (λ>0: closer = higher V)"
+  phys\out("  ra = "&phys\sn(ra)&" m")
+  phys\out("  rb = "&phys\sn(rb)&" m")
 Else
-  Disp "  q = "&phys\sn(q)&" C"
-  Disp "  r1 = "&phys\sn(r1)&" m"
-  Disp "  r2 = "&phys\sn(r2)&" m"
-  Disp "REASONING: K = W(field)"
-  Disp "  = q(V1 - V2)"
-  Disp "  V1-V2 = λ/(2πε0) ln(r2/r1)"
-  Disp "STEP 1: λ/(2π ε0)"
-  Disp "  = "&phys\sf(f)&" V"
-  Disp "STEP 2: K = q λ/(2πε0)"
-  Disp "        * ln(r2/r1)"
-  phys\pk({"K = ("&phys\sn(q)&")","("&phys\sf(f)&")","ln("&phys\sn(r2)&"/"&phys\sn(r1)&")"})
-  kk:=q*f*ln(r2/r1)
-  Disp "STEP 3: Result"
-  Disp "  K = "&phys\sf(kk)&" J"
+  phys\out("  q = "&phys\sn(q)&" C")
+  phys\out("  r1 = "&phys\sn(r1)&" m")
+  phys\out("  r2 = "&phys\sn(r2)&" m")
+EndIf
+Disp "STEP 1: Formula"
+If c=1 Then
+  Disp "  Va-Vb = λ/(2πε0)*ln(rb/ra)"
+Else
+  Disp "  K gained = q*(V1-V2)"
+  Disp "  = q*λ/(2πε0)*ln(r2/r1)"
+EndIf
+Disp "STEP 2: Plug in"
+If c=1 Then
+  phys\pk({"Va-Vb = ("&phys\sn(f)&")","*ln("&phys\sn(rb)&"/"&phys\sn(ra)&")"})
+  dv:=approx(f*ln(rb/ra))
+Else
+  phys\pk({"K = ("&phys\sn(q)&")","*("&phys\sn(f)&")","*ln("&phys\sn(r2)&"/"&phys\sn(r1)&")"})
+  kk:=approx(q*f*ln(r2/r1))
+EndIf
+Disp "STEP 3: Answer"
+If c=1 Then
+  phys\out("  Va - Vb = "&phys\sf(dv)&" V")
+Else
+  phys\out("  K = "&phys\sf(kk)&" J")
+EndIf
+Disp "DIRECTION:"
+If c=1 Then
+  If dv>0 Then
+    Disp "  a is at higher V."
+  ElseIf dv<0 Then
+    Disp "  b is at higher V."
+  Else
+    Disp "  a and b have equal V."
+  EndIf
+Else
   If kk<0 Then
-    Disp "  Negative: the field slows"
-    Disp "  q; starting from rest it"
-    Disp "  cannot get there."
+    Disp "  Slows down; cannot arrive"
+    Disp "  if starting from rest."
+  ElseIf kk>0 Then
+    Disp "  Field adds kinetic energy."
+  Else
+    Disp "  No kinetic energy change."
   EndIf
 EndIf
 EndPrgm
 
 Define LibPriv m237()=
 Prgm
-Local s,t,i,n,c,pc,nc,lt,ok,vv,ex,ey,ez,eqs,vars,sol,ss
+Local s,t,i,n,c,pc,nc,lt,ok,vv,ex,ey,ez,eqs,vars,sol,ss,nzx,nzy,nzz
 phys\hdr("23.7 E from V(x,y,z)")
 Disp "Type V with * between"
 Disp "letters: A*x*y-B*x^2+C*y"
@@ -2186,6 +2308,7 @@ If s="@@" or s="" Then
   physok:=0
   Return
 EndIf
+s:=phys\expo(s)
 DelVar phza,phzb,phzc,phzd,phze,phzf,phzg,phzh,phzi,phzj,phzk,phzl,phzm,phzn,phzo,phzp,phzq,phzr,phzs,phzt,phzu,phzv,phzw,phzx,phzy,phzz
 lt:="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 t:=""
@@ -2213,73 +2336,89 @@ t:=phys\neg(t)
 ok:=1
 Try
   vv:=expr(t)
+  If getType(vv)="NUM" or getType(vv)="EXPR" Then
+    ex:=−∂(vv,phzx)
+    ey:=−∂(vv,phzy)
+    ez:=−∂(vv,phzz)
+  Else
+    ok:=0
+  EndIf
 Else
   ok:=0
   ClrErr
 EndTry
 If ok=0 Then
-  Disp "Could not read V. Use *"
-  Disp "  between letters: A*x*y"
+  Disp "Use one expression for V."
+  Disp "  Example: A*x*y-B*x^2"
   DelVar phza,phzb,phzc,phzd,phze,phzf,phzg,phzh,phzi,phzj,phzk,phzl,phzm,phzn,phzo,phzp,phzq,phzr,phzs,phzt,phzu,phzv,phzw,phzx,phzy,phzz
   Return
 EndIf
 Disp "GIVEN:"
 phys\out("  V = "&phys\unz(string(vv)))
-ex:=−∂(vv,phzx)
-ey:=−∂(vv,phzy)
-ez:=−∂(vv,phzz)
-Disp "STEP 1: E = -gradient of V"
+If inString(t,"sin(")>0 or inString(t,"cos(")>0 or inString(t,"tan(")>0 Then
+  Disp "  Trig input uses degrees."
+EndIf
+Disp "STEP 1: Formula"
 Disp "  Ex = -dV/dx"
 Disp "  Ey = -dV/dy"
 Disp "  Ez = -dV/dz"
-Disp "STEP 2: Differentiate (CAS)"
+Disp "STEP 2: Plug in"
+Disp "  Differentiate V above."
+Disp "STEP 3: Answer"
 phys\out("  Ex = "&phys\unz(string(ex)))
 phys\out("  Ey = "&phys\unz(string(ey)))
 phys\out("  Ez = "&phys\unz(string(ez)))
-Disp "STEP 3: Where is E = 0?"
+Disp "  E in V/m if V in volts"
+Disp "  and x,y,z in meters."
+Disp "WHERE E = 0:"
 eqs:=""
 vars:=""
-If string(ex)≠"0" Then
+nzx:=1
+nzy:=1
+nzz:=1
+If getType(ex)="NUM" Then
+  If ex=0 Then
+    nzx:=0
+  EndIf
+EndIf
+If getType(ey)="NUM" Then
+  If ey=0 Then
+    nzy:=0
+  EndIf
+EndIf
+If getType(ez)="NUM" Then
+  If ez=0 Then
+    nzz:=0
+  EndIf
+EndIf
+If nzx=1 Then
   eqs:=string(ex)&"=0"
-EndIf
-If string(ey)≠"0" Then
-  If eqs≠"" Then
-    eqs:=eqs&" and "
-  EndIf
-  eqs:=eqs&string(ey)&"=0"
-EndIf
-If string(ez)≠"0" Then
-  If eqs≠"" Then
-    eqs:=eqs&" and "
-  EndIf
-  eqs:=eqs&string(ez)&"=0"
-EndIf
-If inString(t,"phzx")>0 Then
   vars:="phzx"
 EndIf
-If inString(t,"phzy")>0 Then
-  If vars≠"" Then
+If nzy=1 Then
+  If eqs≠"" Then
+    eqs:=eqs&","
     vars:=vars&","
   EndIf
+  eqs:=eqs&string(ey)&"=0"
   vars:=vars&"phzy"
 EndIf
-If inString(t,"phzz")>0 Then
-  If vars≠"" Then
+If nzz=1 Then
+  If eqs≠"" Then
+    eqs:=eqs&","
     vars:=vars&","
   EndIf
+  eqs:=eqs&string(ez)&"=0"
   vars:=vars&"phzz"
 EndIf
 If eqs="" Then
   Disp "  E = 0 everywhere"
   Disp "  (V is constant)"
-ElseIf vars="" Then
-  Disp "  E is constant and not 0:"
-  Disp "  it is never zero"
 Else
   Disp "  Solve nonzero parts = 0"
   ok:=1
   Try
-    sol:=expr("solve("&eqs&",{"&vars&"})")
+    sol:=expr("solve({"&eqs&"},{"&vars&"})")
   Else
     ok:=0
     ClrErr
@@ -2305,6 +2444,8 @@ Else
     EndIf
   EndIf
 EndIf
+Disp "DIRECTION:"
+Disp "  E points toward lower V."
 DelVar phza,phzb,phzc,phzd,phze,phzf,phzg,phzh,phzi,phzj,phzk,phzl,phzm,phzn,phzo,phzp,phzq,phzr,phzs,phzt,phzu,phzv,phzw,phzx,phzy,phzz
 EndPrgm
 
@@ -2321,25 +2462,25 @@ c:=physv
 If c=1 Then
   phys\ask("Find: 1=q from Vab 2=Vab from q",102)
   s2:=physv
-  phys\ask("Inner radius ra in m",1)
+  phys\ask("Inner radius ra (m)",1)
   ra:=physv
-  phys\ask("Outer radius rb in m",1)
+  phys\ask("Outer radius rb (m)",1)
   rb:=physv
   If s2=1 Then
-    phys\ask("Vab = Va - Vb in V",0)
+    phys\ask("Va-Vb (V)",0)
     vab:=physv
   Else
-    phys\ask("q on inner sphere in C",0)
+    phys\ask("Inner sphere charge q (C)",0)
     q:=physv
   EndIf
 Else
-  phys\ask("Inner wire radius a in m",1)
+  phys\ask("Inner wire radius a (m)",1)
   a:=physv
-  phys\ask("Outer cylinder radius b in m",1)
+  phys\ask("Outer cylinder radius b (m)",1)
   b:=physv
-  phys\ask("E at radius r, in V/m",0)
+  phys\ask("E at r (V/m, +outward)",0)
   ef:=physv
-  phys\ask("That radius r in m",1)
+  phys\ask("Field radius r (m)",1)
   r:=physv
 EndIf
 If physok=0 Then
@@ -2347,66 +2488,67 @@ If physok=0 Then
 EndIf
 Disp "GIVEN:"
 If c=1 Then
-  Disp "  ra = "&phys\sn(ra)&" m"
-  Disp "  rb = "&phys\sn(rb)&" m"
+  phys\out("  ra = "&phys\sn(ra)&" m")
+  phys\out("  rb = "&phys\sn(rb)&" m")
   If ra≥rb Then
-    Disp "Need ra < rb (inner sphere"
-    Disp "  inside the outer one)."
+    Disp "Need ra < rb: inner sphere"
+    Disp "  must fit inside outer."
     Return
   EndIf
-  Disp "REASONING: only the inner"
-  Disp "  q makes the field between"
-  Disp "  Vab = kq(1/ra - 1/rb)"
-  g:=1/ra-1/rb
-  Disp "  (1/ra-1/rb) = "&phys\sf(g)
-  Disp "    (units 1/m)"
+  g:=(rb-ra)/(ra*rb)
   If s2=1 Then
-    Disp "  Vab = "&phys\sn(vab)&" V"
-    Disp "STEP: q = Vab/(k(1/ra-1/rb))"
-    phys\pk({"q = ("&phys\sn(vab)&")","/((8.99ᴇ9)","("&phys\sf(g)&"))"})
-    q:=vab/(kc*g)
-    Disp "RESULT: q = "&phys\sf(q)&" C"
+    phys\out("  Vab = "&phys\sn(vab)&" V")
   Else
-    Disp "  q = "&phys\sn(q)&" C"
-    Disp "STEP: Vab = kq(1/ra-1/rb)"
-    phys\pk({"Vab = (8.99ᴇ9)","("&phys\sn(q)&")","("&phys\sf(g)&")"})
+    phys\out("  q = "&phys\sn(q)&" C")
+  EndIf
+  Disp "STEP 1: Formula"
+  Disp "  Vab = k*q*(1/ra-1/rb)"
+  If s2=1 Then
+    Disp "  q = Vab/[k*(1/ra-1/rb)]"
+  EndIf
+  Disp "STEP 2: Plug in"
+  If s2=1 Then
+    phys\pk({"q = ("&phys\sn(vab)&")","/[(8.99ᴇ9)","*("&phys\sn(g)&")]"})
+    q:=vab/(kc*g)
+  Else
+    phys\pk({"Vab = (8.99ᴇ9)","*("&phys\sn(q)&")","*("&phys\sn(g)&")"})
     vab:=kc*q*g
-    Disp "RESULT: Vab = "&phys\sf(vab)&" V"
   EndIf
-  If q>0 Then
-    Disp "  q > 0: inner sphere is at"
-    Disp "  the higher potential"
-  ElseIf q<0 Then
-    Disp "  q < 0: inner sphere is at"
-    Disp "  the lower potential"
-  EndIf
+  Disp "STEP 3: Answer"
+  phys\out("  q = "&phys\sf(q)&" C")
+  phys\out("  Vab = "&phys\sf(vab)&" V")
 Else
-  Disp "  a = "&phys\sn(a)&" m"
-  Disp "  b = "&phys\sn(b)&" m"
-  Disp "  E = "&phys\sn(ef)&" V/m"
-  Disp "  at r = "&phys\sn(r)&" m"
+  phys\out("  a = "&phys\sn(a)&" m")
+  phys\out("  b = "&phys\sn(b)&" m")
+  phys\out("  E = "&phys\sn(ef)&" V/m")
+  phys\out("  r = "&phys\sn(r)&" m")
   If a≥b or r<a or r>b Then
-    Disp "Need a < b and r between"
-    Disp "  a and b (E between them)."
+    Disp "Need a < b, with E measured"
+    Disp "  between a and b."
     Return
   EndIf
-  Disp "REASONING: between them"
-  Disp "  E = λ/(2π ε0 r), so"
-  Disp "  λ/(2π ε0) = E*r"
   er:=ef*r
-  Disp "STEP 1: E*r = "&phys\sf(er)&" V"
-  Disp "STEP 2: Vab = E r ln(b/a)"
-  phys\pk({"Vab = ("&phys\sf(er)&")","ln("&phys\sn(b)&"/"&phys\sn(a)&")"})
-  vab:=er*ln(b/a)
-  Disp "  Vab = "&phys\sf(vab)&" V"
-  lam:=2*π*e0*er
-  Disp "STEP 3: λ = 2π ε0 E r"
-  Disp "  λ = "&phys\sf(lam)&" C/m"
-  If vab>0 Then
-    Disp "  wire is at the higher V"
-  ElseIf vab<0 Then
-    Disp "  wire is at the lower V"
-  EndIf
+  Disp "STEP 1: Formula"
+  Disp "  Vab = E*r*ln(b/a)"
+  Disp "  λ = 2π*ε0*E*r"
+  Disp "STEP 2: Plug in"
+  phys\pk({"Vab = ("&phys\sn(er)&")","*ln("&phys\sn(b)&"/"&phys\sn(a)&")"})
+  phys\pk({"λ = 2π*(8.854ᴇ−12)","*("&phys\sn(er)&")"})
+  vab:=approx(er*ln(b/a))
+  lam:=approx(2*π*e0*er)
+  Disp "STEP 3: Answer"
+  phys\out("  Vab = "&phys\sf(vab)&" V")
+  phys\out("  λ = "&phys\sf(lam)&" C/m")
+EndIf
+Disp "DIRECTION:"
+If vab>0 Then
+  Disp "  Inner is at higher V."
+  Disp "  E points outward."
+ElseIf vab<0 Then
+  Disp "  Inner is at lower V."
+  Disp "  E points inward."
+Else
+  Disp "  Equal V; no field between."
 EndIf
 EndPrgm
 
@@ -2415,41 +2557,44 @@ Prgm
 Local q,rr,kc,dv
 kc:=8.99ᴇ9
 phys\hdr("23.9 Insulating sphere")
-phys\ask("Q (total) in C (E for x10^)",0)
+phys\ask("Total charge Q (C)",0)
 q:=physv
-phys\ask("Sphere radius R in m",1)
+phys\ask("Sphere radius R (m)",1)
 rr:=physv
 If physok=0 Then
   Return
 EndIf
 Disp "GIVEN:"
-Disp "  Q = "&phys\sn(q)&" C (uniform)"
-Disp "  R = "&phys\sn(rr)&" m"
-Disp "REASONING: inside, the"
-Disp "  field is E = kQr/R^3."
-Disp "  V(0)-V(R) = integral of"
-Disp "  E dr from 0 to R"
-Disp "STEP 1: V(0)-V(R) = kQ/(2R)"
-phys\pk({"= (8.99ᴇ9)("&phys\sn(q)&")","/(2("&phys\sn(rr)&"))"})
+phys\out("  Q = "&phys\sn(q)&" C")
+phys\out("  R = "&phys\sn(rr)&" m")
+Disp "  Charge spread uniformly."
+Disp "STEP 1: Formula"
+Disp "  V(0)-V(R) = k*Q/(2R)"
+Disp "  V(R) = k*Q/R"
+Disp "  V(0) = 3*k*Q/(2R)"
+Disp "STEP 2: Plug in"
+phys\pk({"V(0)-V(R) = (8.99ᴇ9)","*("&phys\sn(q)&")","/(2*("&phys\sn(rr)&"))"})
 dv:=kc*q/(2*rr)
-Disp "STEP 2: Result"
+Disp "STEP 3: Answer"
 Disp "  V(center) - V(surface)"
-Disp "    = "&phys\sf(dv)&" V"
-Disp "ALSO:"
-Disp "  V(surface) = kQ/R"
-Disp "    = "&phys\sf(kc*q/rr)&" V"
-Disp "  V(center) = 3kQ/(2R)"
-Disp "    = "&phys\sf(3*kc*q/(2*rr))&" V"
+phys\out("    = "&phys\sf(dv)&" V")
+Disp "  V(surface)"
+phys\out("    = "&phys\sf(2*dv)&" V")
+Disp "  V(center)"
+phys\out("    = "&phys\sf(3*dv)&" V")
+Disp "DIRECTION:"
 If q>0 Then
-  Disp "  center is at HIGHER V"
+  Disp "  Center is at higher V."
 ElseIf q<0 Then
-  Disp "  center is at LOWER V"
+  Disp "  Center is at lower V."
+Else
+  Disp "  No charge: V = 0."
 EndIf
 EndPrgm
 
 Define LibPriv m2310()=
 Prgm
-Local q1,x1,q2,x2,q3,kv,x3,lo,hi,kc,u12,u13,u23,a0,a1,a2,bp,xa,xb,j,aa,bb,xm,s1,s2,rts,i,rt,kl
+Local q1,x1,q2,x2,q3,kv,x3,lo,hi,kc,u12,u13,u23,a0,a1,a2,bp,xa,xb,j,aa,bb,xm,s1,s2,rts,i,rt,kl,sc,ok,failed,keep
 kc:=8.99ᴇ9
 phys\hdr("23.10 Where U = 0")
 Disp "q1, q2 fixed on the x-axis"
@@ -2478,11 +2623,15 @@ If physok=0 Then
   Return
 EndIf
 Disp "GIVEN:"
-Disp "  q1 = "&phys\sn(q1)&" C"
-Disp "    at x1 = "&phys\sn(x1)&" m"
-Disp "  q2 = "&phys\sn(q2)&" C"
-Disp "    at x2 = "&phys\sn(x2)&" m"
-Disp "  q3 = "&phys\sn(q3)&" C"
+phys\out("  q1 = "&phys\sn(q1)&" C")
+phys\out("    at x1 = "&phys\sn(x1)&" m")
+phys\out("  q2 = "&phys\sn(q2)&" C")
+phys\out("    at x2 = "&phys\sn(x2)&" m")
+phys\out("  q3 = "&phys\sn(q3)&" C")
+phys\pk({"Search x: "&phys\sn(lo)," to "&phys\sn(hi)&" m"})
+If kv=1 Then
+  phys\out("  Now x3 = "&phys\sn(x3)&" m")
+EndIf
 If x1=x2 Then
   Disp "q1 and q2 at the same x:"
   Disp "  U12 infinite. Need x1≠x2."
@@ -2493,6 +2642,12 @@ If lo≥hi Then
   Disp "  than the end."
   Return
 EndIf
+Disp "STEP 1: Formula"
+Disp "  U(x) = k*[q1*q2/|x2-x1|"
+Disp "    +q1*q3/|x-x1|"
+Disp "    +q2*q3/|x-x2|]"
+Disp "  Find x where U(x) = 0."
+Disp "STEP 2: Plug in"
 u12:=kc*q1*q2/abs(x2-x1)
 If kv=1 Then
   If x3=x1 or x3=x2 Then
@@ -2502,39 +2657,40 @@ If kv=1 Then
   EndIf
   u13:=kc*q1*q3/abs(x3-x1)
   u23:=kc*q2*q3/abs(x3-x2)
-  Disp "U WITH q3 AT x = "&phys\sn(x3)
+  phys\out("U WITH q3 AT x = "&phys\sn(x3))
   Disp "  U12 = kq1q2/|x2-x1|"
-  Disp "    = "&phys\sf(u12)&" J"
+  phys\out("    = "&phys\sf(u12)&" J")
   Disp "  U13 = kq1q3/|x3-x1|"
-  Disp "    = "&phys\sf(u13)&" J"
+  phys\out("    = "&phys\sf(u13)&" J")
   Disp "  U23 = kq2q3/|x3-x2|"
-  Disp "    = "&phys\sf(u23)&" J"
-  Disp "  U = sum = "&phys\sf(u12+u13+u23)&" J"
+  phys\out("    = "&phys\sf(u23)&" J")
+  phys\out("  U = sum = "&phys\sf(u12+u13+u23)&" J")
 EndIf
 a0:=q1*q2/abs(x2-x1)
 a1:=q1*q3
 a2:=q2*q3
-Disp "SETUP: U(x) = 0"
-Disp "  k[q1q2/|x2-x1|"
-Disp "   + q1q3/|x-x1|"
-Disp "   + q2q3/|x-x2|] = 0"
-Disp "  (k cancels)"
-Disp "  q1q2/|x2-x1| = "&phys\sf(a0)
-Disp "  q1q3 = "&phys\sf(a1)
-Disp "  q2q3 = "&phys\sf(a2)
+Disp "  For U = 0, k cancels."
+phys\out("  q1q2/|x2-x1| = "&phys\sf(a0))
+phys\out("  q1q3 = "&phys\sf(a1))
+phys\out("  q2q3 = "&phys\sf(a2))
 If a1=0 and a2=0 Then
+  Disp "STEP 3: Answer"
   If a0=0 Then
-    Disp "  U = 0 for every x"
+    Disp "  U = 0 for every allowed x"
   Else
     Disp "  U does not depend on x"
     Disp "  and is never 0"
   EndIf
+  Disp "DIRECTION:"
+  Disp "  Exclude x1 and x2."
   Return
 EndIf
-Disp "SOLVE: split at the charges;"
-Disp "  in each piece |x-xi| is"
-Disp "  +(x-xi) or -(x-xi). The"
-Disp "  CAS finds the zeros."
+Disp "  Split at x1 and x2."
+Disp "  Keep roots in each piece."
+sc:=max(abs(a0),max(abs(a1),abs(a2)))
+a0:=a0/sc
+a1:=a1/sc
+a2:=a2/sc
 xa:=min(x1,x2)
 xb:=max(x1,x2)
 bp:={lo}
@@ -2546,39 +2702,79 @@ If xb>lo and xb<hi Then
 EndIf
 bp:=augment(bp,{hi})
 kl:={}
+failed:=0
 DelVar phzx
 For j,1,dim(bp)-1
   aa:=bp[j]
   bb:=bp[j+1]
-  xm:=(aa+bb)/2
+  xm:=aa/2+bb/2
   s1:=sign(xm-x1)
   s2:=sign(xm-x2)
-  Disp "PIECE "&string(j)&":"
+  phys\out("PIECE "&string(j)&":")
   phys\pk({"x from "&phys\sn(aa)," to "&phys\sn(bb)})
-  rts:=zeros(a0+a1/(s1*(phzx-x1))+a2/(s2*(phzx-x2)),phzx)
+  ok:=1
+  Try
+    rts:=zeros(a0+a1/(s1*(phzx-x1))+a2/(s2*(phzx-x2)),phzx)
+  Else
+    ok:=0
+    ClrErr
+  EndTry
+  If ok=1 Then
+    If getType(rts)≠"LIST" Then
+      ok:=0
+    EndIf
+  EndIf
+  If ok=0 Then
+    Disp "  CAS could not solve piece."
+    failed:=1
+    Cycle
+  EndIf
   If dim(rts)=0 Then
     Disp "  no root in this piece"
   EndIf
   For i,1,dim(rts)
     rt:=approx(rts[i])
-    If rt>aa and rt<bb Then
-      Disp "  x = "&phys\sf(rt)&" m: KEEP"
+    If getType(rt)≠"NUM" Then
+      Disp "  Root could not be checked."
+      failed:=1
+      Cycle
+    EndIf
+    keep:=0
+    If rt≠x1 and rt≠x2 Then
+      If rt>aa and rt<bb Then
+        keep:=1
+      ElseIf (rt=aa and aa=lo) or (rt=bb and bb=hi) Then
+        keep:=1
+      EndIf
+    EndIf
+    If keep=1 Then
+      phys\out("  x = "&phys\sf(rt)&" m: KEEP")
       kl:=augment(kl,{rt})
     Else
-      Disp "  x = "&phys\sf(rt)&" m: reject"
-      Disp "    (outside this piece)"
+      phys\out("  x = "&phys\sf(rt)&" m: reject")
+      Disp "    (outside valid interval)"
     EndIf
   EndFor
 EndFor
 DelVar phzx
-Disp "RESULT:"
+Disp "STEP 3: Answer"
 If dim(kl)=0 Then
-  Disp "  U is never 0 from"
-  phys\pk({"x = "&phys\sn(lo)," to "&phys\sn(hi)&" m"})
+  If failed=0 Then
+    Disp "  U is never 0 from"
+    phys\pk({"x = "&phys\sn(lo)," to "&phys\sn(hi)&" m"})
+  Else
+    Disp "  No confirmed root found."
+  EndIf
 Else
   For i,1,dim(kl)
-    Disp "  U = 0 at x = "&phys\sf(kl[i])&" m"
+    phys\out("  U = 0 at x = "&phys\sf(kl[i])&" m")
   EndFor
 EndIf
+If failed=1 Then
+  Disp "  Search is incomplete."
+EndIf
+Disp "DIRECTION:"
+phys\out("  U is signed; add all pairs.")
+Disp "  x1 and x2 are excluded."
 EndPrgm
 
