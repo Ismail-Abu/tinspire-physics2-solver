@@ -27,4 +27,11 @@ In a Calculator page type `phys\main()` and press enter, or use Catalog > Librar
 
 Results are in SI units to 3 significant figures, using k = 8.99E9, e0 = 8.854E-12, e = 1.602E-19, me = 9.109E-31, mp = 1.673E-27, g = 9.8.
 
+## App version
+
+`physapp.tns` is the same solver as an app. Put it anywhere in My Documents (it does not
+need MyLib) and open it. Arrow keys move through the chapter and type menus; each problem
+type shows a labelled diagram and all of its input boxes on one screen. Enter solves,
+Esc goes back.
+
 `phys.tib` is the program source.
